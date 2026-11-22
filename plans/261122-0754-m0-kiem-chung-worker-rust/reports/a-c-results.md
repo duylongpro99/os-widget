@@ -30,7 +30,16 @@ Nhận xét: vì không có provisioning profile, mốc 7 ngày của profile mi
 
 ### Ngày 1 (2026-11-22)
 
-_Chờ operator thêm widget và bấm "Ghi dữ liệu"._
+**Đạt.** Operator thêm widget "Probe" lên desktop qua "Edit Widgets", bấm "Ghi dữ liệu", và widget hiện mốc thời gian vừa ghi, không phải "App Group: lỗi". Lời operator (khoảng 21:5x ngày 2026-11-22, nguyên văn): "đã xong, proble hiện thời gian".
+
+| Câu hỏi | Kết quả |
+|---|---|
+| Widget hiện mốc thời gian hay "App Group: lỗi" | Hiện mốc thời gian |
+| Độ trễ từ lúc bấm đến lúc widget đổi | Không được báo |
+| Hộp thoại xin quyền truy cập dữ liệu app khác | Không được báo |
+| Chuỗi "App Group: …" trong menu | Không được báo |
+
+Kết luận ngày 1: App Group dạng `<TeamID>.os-widget` dùng được giữa app và widget khi ký bằng tài khoản Apple miễn phí, không cần provisioning profile.
 
 ### Ngày 8 (2026-11-30)
 
