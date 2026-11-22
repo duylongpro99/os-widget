@@ -328,6 +328,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "os-widget-worker"
+version = "0.1.0"
+dependencies = [
+ "envelope",
+ "serde",
+ "serde_json",
+ "uuid",
+ "worker",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -681,17 +692,6 @@ checksum = "d7d179596ff5ec0f6de4db64d54011bde6289cc49603d3a6e4ce3f329207ab88"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "worker"
-version = "0.1.0"
-dependencies = [
- "envelope",
- "serde",
- "serde_json",
- "uuid",
- "worker 0.9.0",
 ]
 
 [[package]]
