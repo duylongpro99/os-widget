@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Chuẩn bị công cụ và tài khoản"
-status: in-progress
+status: completed
 priority: P1
 effort: "1h"
 dependencies: []
@@ -29,7 +29,7 @@ Kiểm tra máy ngày 2026-11-22: đã có `cargo`, `rustup`, `node`/`npx`, `sup
 - [x] Người dùng đăng nhập Cloudflare: `! npx wrangler login` (tương tác, không tự chạy được). Xác nhận bằng `npx wrangler whoami`.
 - [x] Người dùng đăng nhập Supabase: `! supabase login`. Tạo hoặc chọn một project ở gói miễn phí; ghi project ref và URL. Khoá service role chỉ giữ trong trình quản lý secret, không ghi vào file nào trong repo.
 - [x] Cài XcodeGen: `brew install xcodegen`.
-- [ ] Người dùng đăng nhập Apple ID trong Xcode (Settings → Accounts) và lấy Team ID của Personal Team (10 ký tự).
+- [x] Người dùng đăng nhập Apple ID trong Xcode (Settings → Accounts) và lấy Team ID của Personal Team (10 ký tự). Team ID: `22LZWPB3XL`.
 - [x] Tra tài liệu hạn mức hiện hành của Cloudflare Workers gói miễn phí và ghi vào `reports/limits.md`, mỗi dòng kèm URL nguồn và ngày tra:
   - CPU mỗi request, và CPU khởi động Wasm có bị tính hay không.
   - Dung lượng Worker tối đa sau nén.

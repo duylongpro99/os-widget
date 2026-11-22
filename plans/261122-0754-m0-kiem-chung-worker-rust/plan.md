@@ -29,9 +29,9 @@ Hoàn thành thử nghiệm D của Giai đoạn 0 (`docs/roadmap.md`) trên khu
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Chuẩn bị công cụ và tài khoản](./phase-01-chuan-bi-cong-cu-va-tai-khoan.md) | In progress (chờ Apple ID / Team ID trong Xcode) |
+| 1 | [Chuẩn bị công cụ và tài khoản](./phase-01-chuan-bi-cong-cu-va-tai-khoan.md) | Completed |
 | 2 | [Repo và schema Supabase](./phase-02-repo-va-schema-supabase.md) | Completed |
-| 3 | [App thử nghiệm A (kèm panel C)](./phase-03-app-thu-nghiem-a.md) | Pending |
+| 3 | [App thử nghiệm A (kèm panel C)](./phase-03-app-thu-nghiem-a.md) | Completed (A và C ngày 1 đạt; kiểm ngày 8 vào 2026-11-30, xem [a-c-results](./reports/a-c-results.md)) |
 | 4 | [Khung Rust và deploy](./phase-04-khung-rust-va-deploy.md) | Completed |
 | 5 | [Đo D và quyết định](./phase-05-do-d-va-quyet-dinh.md) | Completed (Rust trượt ngưỡng p99, operator giữ Rust; xem [d-results](./reports/d-results.md)) |
 | 6 | [Cập nhật tài liệu](./phase-06-cap-nhat-tai-lieu.md) | Pending |

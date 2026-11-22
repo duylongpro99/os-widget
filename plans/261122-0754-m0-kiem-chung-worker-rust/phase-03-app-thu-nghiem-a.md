@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "App thử nghiệm A (kèm panel C)"
-status: pending
+status: completed
 priority: P1
 effort: "2h"
 dependencies: [1, 2]
@@ -30,16 +30,16 @@ Cài lên một máy Mac một app tối giản có widget extension dùng App G
 
 ## Tasks & Steps
 
-- [ ] `project.yml`: hai target, app macOS và widget extension; deployment target macOS 26; `DEVELOPMENT_TEAM` lấy từ Team ID ở Phase 1; ký tự động.
-- [ ] Entitlements của cả hai target: App Sandbox, `com.apple.security.application-groups = [$(TeamIdentifierPrefix)os-widget]`.
-- [ ] App là agent (`LSUIElement = YES`), có `NSStatusItem` với ba mục menu:
+- [x] `project.yml`: hai target, app macOS và widget extension; deployment target macOS 26; `DEVELOPMENT_TEAM` lấy từ Team ID ở Phase 1; ký tự động.
+- [x] Entitlements của cả hai target: App Sandbox, `com.apple.security.application-groups = [$(TeamIdentifierPrefix)os-widget]`.
+- [x] App là agent (`LSUIElement = YES`), có `NSStatusItem` với ba mục menu:
   - "Ghi dữ liệu": ghi chuỗi thời điểm hiện tại vào `UserDefaults(suiteName: "<TeamID>.os-widget")`, sau đó gọi `WidgetCenter.shared.reloadAllTimelines()`.
   - "Mở panel sau 10 giây": sau 10 giây mở một `NSPanel` kiểu `.nonactivatingPanel` bằng `orderFrontRegardless()`, không gọi `NSApp.activate`.
   - "Ghi log reload": ghi thời điểm mỗi lần gọi reload vào App Group, để dùng lại khi đo B.
-- [ ] Widget đọc chuỗi từ App Group và hiển thị; nếu không đọc được thì hiện "App Group: lỗi" để thấy rõ thất bại.
-- [ ] `xcodegen generate`, sau đó build bằng `xcodebuild -scheme <app> -configuration Debug -allowProvisioningUpdates build`.
-- [ ] Copy app vào `/Applications`, mở app, thêm widget lên desktop (người dùng làm qua "Edit Widgets").
-- [ ] Ghi vào `reports/a-c-results.md`: ngày giờ cài, phiên bản macOS và Xcode, ngày hết hạn của provisioning profile (xem bằng `security cms -D -i <app>/Contents/embedded.provisionprofile`), kết quả ngày 1 (widget có hiện chuỗi vừa ghi không).
+- [x] Widget đọc chuỗi từ App Group và hiển thị; nếu không đọc được thì hiện "App Group: lỗi" để thấy rõ thất bại.
+- [x] `xcodegen generate`, sau đó build bằng `xcodebuild -scheme <app> -configuration Debug -allowProvisioningUpdates build`.
+- [x] Copy app vào `/Applications`, mở app, thêm widget lên desktop (người dùng làm qua "Edit Widgets").
+- [x] Ghi vào `reports/a-c-results.md`: ngày giờ cài, phiên bản macOS và Xcode, ngày hết hạn của provisioning profile (xem bằng `security cms -D -i <app>/Contents/embedded.provisionprofile`), kết quả ngày 1 (widget có hiện chuỗi vừa ghi không). Không có provisioning profile nào được nhúng, nên ghi chú điều đó thay cho ngày hết hạn; chứng chỉ ký hết hạn 2027-11-22.
 
 ## Verification
 
