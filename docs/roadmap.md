@@ -9,9 +9,9 @@ Roadmap xếp theo thứ tự và điều kiện hoàn thành, không gắn ngà
 | Giai đoạn | Kết quả | Phụ thuộc |
 |---|---|---|
 | 0. Kiểm chứng | Biết chắc bốn giả định rủi ro nhất đúng hay sai | Không |
-| 1. Server | Publish và đọc được mục qua API thật | 0 |
-| 2. App thanh menu | Mục mới hiện ở popup, đồng bộ đã đọc và xoá | 1 |
-| 3. Widget | Mục mới nhất nằm đầu widget trên desktop | 2 |
+| 1. Server | Publish và đọc được mục qua API thật | 0 (chỉ thử nghiệm D) |
+| 2. App thanh menu | Mục mới hiện ở popup, đồng bộ đã đọc và xoá | 1; thử nghiệm A, B, C |
+| 3. Widget | Mục mới nhất nằm đầu widget trên desktop | 2; thử nghiệm A, B |
 | 4. Từ vựng | Thẻ từ vựng đầy đủ, tự gửi theo chu kỳ | 2 |
 | 5. Hoàn thiện | Dùng hằng ngày trên cả hai máy | 3, 4 |
 | Sau này | iPhone, Windows | 5 |
@@ -29,13 +29,22 @@ Mục đích là trả lời bốn câu hỏi có thể làm đổi thiết kế
 | C. Popup tự mở | Popup tự mở có cướp focus khi đang gõ ở app khác không? | Dùng panel không kích hoạt. |
 | D. Worker Rust với Supabase | Worker Rust có đọc, ghi Supabase qua REST trong 10 ms CPU không? | Viết Worker bằng TypeScript. |
 
-**Hoàn thành khi:** mỗi câu hỏi có câu trả lời kèm số đo, và architecture.md được cập nhật theo kết quả. Thử nghiệm A cần một tuần chờ để biết về hạn 7 ngày; các giai đoạn sau không phải đợi nó.
+**Hoàn thành khi:** mỗi câu hỏi có câu trả lời kèm số đo, và architecture.md được cập nhật theo kết quả. Giai đoạn 1 chỉ cần kết quả D. A và B phải có kết quả trước Giai đoạn 2 và 3; C phải có kết quả trước Giai đoạn 2. Thử nghiệm A cần một tuần chờ để biết về hạn 7 ngày.
+
+### Kết quả
+
+| Thử nghiệm | Trạng thái |
+|---|---|
+| D | Xong. Worker Rust đọc, ghi Supabase qua REST được, nhưng trượt ngưỡng p99 ≤ 5 ms đặt ra: `POST /items` p50 2 ms, p99 11 ms; `GET /events` p50 3 ms, p99 7 ms (hai lần đo, 140–147 request mỗi endpoint). Request trúng isolate mới tốn 16–21 ms, vượt hạn mức 10 ms nhưng không bị chặn. Dung lượng 563.08 KiB chưa nén, dưới hạn mức 64 MiB. Chủ dự án quyết định giữ Rust và chấp nhận rủi ro (architecture.md mục 9). |
+| A | Đang chạy. App thử nghiệm cài ngày 2026-11-22, ký bằng Personal Team miễn phí, không có provisioning profile. Ngày 1 đạt: widget đọc được dữ liệu app ghi qua App Group. Kiểm ngày 8 vào 2026-11-30. |
+| B | Chưa đo. Đo bằng app thử nghiệm A trước Giai đoạn 2. |
+| C | Ngày 1 đạt: panel không kích hoạt tự mở mà không lấy focus khỏi TextEdit đang gõ. |
 
 ## Giai đoạn 1: Server
 
 - Tạo bảng `items`, `events`, trigger ghi sự kiện và chính sách RLS trên Supabase.
 - Crate `envelope` với ba loại: `notification`, `vocab`, `generic`.
-- Worker với năm endpoint và hai token.
+- Worker với năm endpoint và hai token. `GET /events` giới hạn số sự kiện mỗi trang, vì đọc 159 sự kiện một lần đã tốn 15–19 ms CPU.
 - CLI publish dùng lại crate `envelope`.
 - Tác vụ định kỳ dọn mục hết hạn, mục đã xoá và sự kiện cũ.
 

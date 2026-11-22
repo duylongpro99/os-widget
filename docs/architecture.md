@@ -1,6 +1,6 @@
 # Kiến trúc: os-widget
 
-Cập nhật: 2026-11-22. Trạng thái: thiết kế, chưa triển khai. Các điểm ghi "chưa kiểm chứng" được xử lý ở giai đoạn 0 của [roadmap.md](roadmap.md). Yêu cầu nằm ở [prd.md](prd.md).
+Cập nhật: 2026-11-22. Trạng thái: thiết kế; giai đoạn 0 đã có khung Worker Rust thử nghiệm và kết quả đo, xem [roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng). Các điểm còn ghi "chưa kiểm chứng" vẫn chờ giai đoạn 0 hoặc giai đoạn dùng tới chúng. Yêu cầu nằm ở [prd.md](prd.md).
 
 ## 1. Tổng quan
 
@@ -150,7 +150,7 @@ Một Cargo workspace gồm ba crate:
 - `worker`: các handler HTTP, dùng `workers-rs`, gọi Supabase qua REST.
 - `cli`: lệnh publish cho agent và cron, dùng lại crate `envelope` để validate trước khi gửi.
 
-Worker gọi Supabase bằng REST (PostgREST) với khoá service role lưu dưới dạng secret. Đây là đường ít rủi ro nhất từ Wasm. Kết nối Postgres trực tiếp qua Hyperdrive là phương án thay thế nếu REST không đáp ứng; chưa kiểm chứng với `workers-rs`.
+Worker gọi Supabase bằng REST (PostgREST) với khoá service role lưu dưới dạng secret. Đây là đường ít rủi ro nhất từ Wasm; giai đoạn 0 đã chạy được đường này bằng `worker::Fetch`. Kết nối Postgres trực tiếp qua Hyperdrive là phương án thay thế nếu REST không đáp ứng; chưa kiểm chứng với `workers-rs`.
 
 ### 4.3 Cơ sở dữ liệu
 
@@ -218,7 +218,9 @@ create table settings (
 - **Gửi theo chu kỳ bằng Cron Trigger của Worker.** Cron chạy với nhịp cố định ngắn; mỗi lần chạy nó so thời điểm gửi gần nhất với `vocab_interval_minutes` trong bảng `settings` và chỉ gửi khi tới hạn. Đổi chu kỳ vì vậy là sửa một dòng dữ liệu, không phải deploy lại.
 - **Khi hết từ**, cron làm theo `vocab_when_exhausted`: dừng, hoặc đặt lại `sent_at` để quay vòng.
 
-Chưa kiểm chứng: hạn mức Cron Trigger ở gói miễn phí của Cloudflare, và API từ điển nào đủ trường và cho phép dùng miễn phí.
+Hạn mức Cron Trigger ở gói miễn phí: tối đa 5 Cron Trigger mỗi tài khoản, 10 ms CPU mỗi lần chạy, nhịp nhỏ nhất 1 phút (cú pháp cron có trường phút). Cron của bộ từ chỉ cần một trigger. Vì CPU khi isolate mới khởi động của Worker Rust đã đo được 16–21 ms (mục 8), một lần chạy cron rơi vào isolate mới có thể vượt 10 ms.
+
+Chưa kiểm chứng: API từ điển nào đủ trường và cho phép dùng miễn phí.
 
 ## 5. Giao thức đồng bộ
 
@@ -268,7 +270,7 @@ Chi tiết đáng lưu ý:
 
 ### Chia sẻ dữ liệu giữa app và widget
 
-Phương án chính là App Group với định danh có tiền tố Team ID, dạng mà Apple mô tả là không cần đăng ký trên trang Developer. Chưa kiểm chứng với tài khoản miễn phí. Nếu không được, widget lấy ảnh chụp từ app qua HTTP trên localhost.
+Phương án chính là App Group với định danh có tiền tố Team ID, dạng mà Apple mô tả là không cần đăng ký trên trang Developer. Thử nghiệm A ngày đầu cho thấy App Group dạng `<TeamID>.os-widget` dùng được giữa app và widget khi ký bằng Personal Team miễn phí, và Xcode không nhúng provisioning profile nào. Việc app còn chạy sau 7 ngày chờ lần kiểm ngày 8 ([roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng)). Nếu không được, widget lấy ảnh chụp từ app qua HTTP trên localhost.
 
 ## 7. Bảo mật
 
@@ -287,7 +289,8 @@ Nội dung do bên gửi cung cấp được coi là dữ liệu: markdown khôn
 | Tài nguyên | Hạn mức | Mức dùng ước tính |
 |---|---|---|
 | Worker, request | 100.000 mỗi ngày | Vài trăm mỗi ngày |
-| Worker, CPU | 10 ms mỗi request | Validate và chuyển tiếp JSON nhỏ; thời gian chờ Supabase không tính. Chưa đo với Rust. |
+| Worker, CPU | 10 ms mỗi request | Đo trên Worker Rust đã deploy (hai lần, 140–147 request mỗi endpoint): `POST /items` p50 2 ms, p99 11 ms; `GET /events` (5 sự kiện mỗi lần) p50 3 ms, p99 7 ms. Request trúng isolate mới tốn 16–21 ms nhưng không bị chặn. Thời gian chờ Supabase không tính. |
+| Worker, dung lượng | 64 MiB chưa nén (không còn hạn mức sau nén) | 563.08 KiB chưa nén, 191.37 KiB sau gzip. |
 | Supabase Realtime, message | 2 triệu mỗi tháng | Khoảng 6.000 mỗi tháng |
 | Supabase Realtime, kết nối | 200 đồng thời | 2 đến 3 |
 | Supabase, project | Tạm dừng sau khoảng một tuần ít hoạt động | Cron từ vựng mỗi giờ giữ project hoạt động |
@@ -298,11 +301,11 @@ Chu kỳ poll dự phòng phải đủ thưa để hai máy không tiêu đáng 
 
 | Rủi ro | Ảnh hưởng | Phương án |
 |---|---|---|
-| App Groups không dùng được với tài khoản miễn phí | Widget không đọc được dữ liệu | Widget lấy ảnh chụp qua localhost. |
+| App Groups không dùng được với tài khoản miễn phí | Widget không đọc được dữ liệu | Ngày đầu thử nghiệm A đã dùng được; nếu hỏng về sau, widget lấy ảnh chụp qua localhost. |
 | Profile ký hết hạn sau khoảng 7 ngày | Phải build lại định kỳ | Chấp nhận, hoặc nâng lên tài khoản trả phí. |
 | Widget làm mới chậm hoặc bị giới hạn | Widget hiện nội dung cũ | Popup là bề mặt tức thì; nếu quá chậm, thay widget bằng cửa sổ SwiftUI ở tầng desktop. |
-| Popup cướp focus | Gián đoạn khi đang gõ | Dùng panel không kích hoạt thay cho popover. |
-| `workers-rs` thiếu tính năng hoặc vượt 10 ms CPU | Không dựng được server như thiết kế | Viết lại Worker bằng TypeScript, giữ nguyên API và schema. |
+| Popup cướp focus | Gián đoạn khi đang gõ | Dùng panel không kích hoạt thay cho popover; thử nghiệm C ngày đầu xác nhận panel này không lấy focus khỏi app đang gõ. |
+| Worker Rust vượt 10 ms CPU | Request bị Cloudflare chặn ở gói miễn phí | Đã đo ở giai đoạn 0: trượt ngưỡng p99 ≤ 5 ms đặt ra (`POST /items` 11 ms, `GET /events` 7 ms); chủ dự án vẫn giữ Rust và chấp nhận rủi ro. Khi đã ấm, p50 chỉ 2–3 ms; đuôi p99 đến từ request trúng isolate mới đang khởi động Wasm, và các request đó tốn 16–21 ms, vượt hạn mức 10 ms nhưng lần đo không request nào bị chặn. `GET /events?since=0` với 159 sự kiện tốn 15–19 ms, nên Giai đoạn 1 thêm giới hạn số sự kiện mỗi trang. Nếu Cloudflare bắt đầu chặn: viết lại Worker bằng TypeScript, giữ nguyên API và schema. |
 | Supabase tạm dừng project | Mất đồng bộ cho tới khi bật lại | Cron giữ hoạt động; app báo rõ khi server không phản hồi. |
 
 ## 10. Mở rộng sang nền tảng khác
