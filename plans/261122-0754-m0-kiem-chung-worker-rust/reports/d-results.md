@@ -4,7 +4,7 @@ Ngày đo: 2026-11-22 (giờ Asia/Saigon). Worker: https://os-widget.longdaobk17
 
 ## Kết luận
 
-Worker Rust **trượt** ngưỡng CPU đã chốt: p99 của `POST /items` là 11 ms và của `GET /events` là 7 ms ở cả hai lần đo, trong khi ngưỡng là p99 ≤ 5 ms ở cả hai endpoint (p99 trong khoảng 5–10 ms vẫn tính là trượt). Dung lượng thì đạt. Kết quả đã gửi supervisor; dòng quyết định chờ operator trả lời.
+Worker Rust **trượt** ngưỡng CPU đã chốt: p99 của `POST /items` là 11 ms và của `GET /events` là 7 ms ở cả hai lần đo, trong khi ngưỡng là p99 ≤ 5 ms ở cả hai endpoint (p99 trong khoảng 5–10 ms vẫn tính là trượt). Dung lượng thì đạt. Operator đã xem kết quả và quyết định giữ Rust dù trượt ngưỡng (xem mục Quyết định).
 
 ## Cách đo
 
@@ -55,4 +55,11 @@ Sau khi đo, `items` và `events` có 305 dòng mỗi bảng (300 của hai lầ
 
 ## Quyết định
 
-Quyết định: (chờ operator trả lời; theo ngưỡng đã chốt thì kết quả là trượt)
+Theo ngưỡng đã chốt, Rust trượt: p99 của `POST /items` là 11 ms và của `GET /events` là 7 ms, cả hai đều lớn hơn 5 ms; dung lượng đạt. Operator đã xem các con số này và trả lời "keep Rust" (2026-11-22 15:34, quyết định D6 trong sổ quyết định của supervisor). Vì vậy không viết `worker-ts/`.
+
+Rủi ro được chấp nhận:
+
+- Khi đã ấm, CPU p50 chỉ 2–3 ms; đuôi p99 đến chủ yếu từ các request trúng isolate mới đang khởi động Wasm.
+- CPU cold start 16–21 ms vượt hạn mức 10 ms của gói Free. Lần đo này không request nào bị chặn (`outcome` đều là `ok`), nhưng Cloudflare không cam kết sẽ luôn bỏ qua như vậy.
+
+Quyết định: Rust — trượt ngưỡng p99 ≤ 5 ms ở cả hai endpoint (11 ms và 7 ms) nhưng operator chọn giữ Rust và chấp nhận rủi ro ở trên.
