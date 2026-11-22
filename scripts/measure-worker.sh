@@ -36,7 +36,10 @@ for i in $(seq 1 "$count"); do
   [[ "$code" == 2* ]] || { post_errors=$((post_errors + 1)); echo "POST #$i -> $code" >&2; }
 done
 
-latest=$(curl -sf -H @"$hdr" "$url/events?since=0&probe=1" | jq '[.[].seq] | max // 0')
+latest=$(curl -sf -H @"$hdr" "$url/events?since=0&probe=1" | jq '[.[].seq] | max // 0') || {
+  echo "probe GET /events failed (POST /items errors so far: $post_errors)" >&2
+  exit 1
+}
 since=$((latest > 5 ? latest - 5 : 0))
 
 echo "run $run_id: $count GET /events?since=$since (latest seq $latest)"
