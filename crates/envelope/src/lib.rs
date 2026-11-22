@@ -51,7 +51,7 @@ pub enum Body {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NotificationBody {
     /// Short markdown.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
 }
 
@@ -134,6 +134,34 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    /// The publish request example from the architecture doc, with `kind` set to
+    /// the one supported variant, must survive a round trip unchanged.
+    #[test]
+    fn architecture_example_round_trips() {
+        let input = json!({
+            "v": 1,
+            "kind": "notification",
+            "source": "vocab-cron",
+            "priority": "normal",
+            "title": "serendipity",
+            "summary": "(n.) sự tình cờ may mắn",
+            "url": null,
+            "ttl": 86400,
+            "dedupe_key": "vocab-2026-11-22T10",
+            "body": { }
+        });
+        let e: Envelope = serde_json::from_value(input.clone()).unwrap();
+        assert_eq!(to_value(&e).unwrap(), input);
+
+        let with_text = json!({
+            "v": 1, "kind": "notification", "source": "m0", "priority": "high",
+            "title": "t", "summary": "s", "url": "https://example.com", "ttl": null,
+            "dedupe_key": null, "body": { "text": "**hi**" }
+        });
+        let e: Envelope = serde_json::from_value(with_text.clone()).unwrap();
+        assert_eq!(to_value(&e).unwrap(), with_text);
     }
 
     #[test]
