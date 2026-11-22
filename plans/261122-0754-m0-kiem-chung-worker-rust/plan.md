@@ -1,7 +1,7 @@
 ---
 title: "M0: kiểm chứng Worker Rust và khởi động thử nghiệm A"
 description: "Hoàn thành thử nghiệm D trên khung Rust thật của Giai đoạn 1 và khởi động thử nghiệm A song song, để vào Giai đoạn 1 ngay khi D có kết quả."
-status: in-progress
+status: completed
 priority: P1
 effort: 9.5h
 tags: [infra, backend, experimental]
@@ -34,7 +34,7 @@ Hoàn thành thử nghiệm D của Giai đoạn 0 (`docs/roadmap.md`) trên khu
 | 3 | [App thử nghiệm A (kèm panel C)](./phase-03-app-thu-nghiem-a.md) | Completed (A và C ngày 1 đạt; kiểm ngày 8 vào 2026-11-30, xem [a-c-results](./reports/a-c-results.md)) |
 | 4 | [Khung Rust và deploy](./phase-04-khung-rust-va-deploy.md) | Completed |
 | 5 | [Đo D và quyết định](./phase-05-do-d-va-quyet-dinh.md) | Completed (Rust trượt ngưỡng p99, operator giữ Rust; xem [d-results](./reports/d-results.md)) |
-| 6 | [Cập nhật tài liệu](./phase-06-cap-nhat-tai-lieu.md) | Pending |
+| 6 | [Cập nhật tài liệu](./phase-06-cap-nhat-tai-lieu.md) | Completed |
 
 Thứ tự: 1 → 2 → 3 và 4 (độc lập, nên làm 3 trước để đồng hồ 7 ngày chạy sớm) → 5 → 6. Phase 6 cần kết quả của cả 3 và 5.
 
