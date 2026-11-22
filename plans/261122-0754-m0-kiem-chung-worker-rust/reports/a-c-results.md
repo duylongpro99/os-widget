@@ -1,6 +1,6 @@
 # Kết quả thử nghiệm A và C
 
-App thử nghiệm: `spikes/widget-probe/`, gồm target `WidgetProbe` (app agent trên thanh menu) và widget extension `ProbeWidget`, trên branch `widget-probe-app`.
+App thử nghiệm: `spikes/widget-probe/`, gồm target `WidgetProbe` (app agent trên thanh menu) và widget extension `ProbeWidget`.
 
 ## Môi trường
 
