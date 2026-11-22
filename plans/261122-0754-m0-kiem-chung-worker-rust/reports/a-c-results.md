@@ -47,4 +47,14 @@ _Chưa đến. Kiểm: app còn chạy không, mở lại được không, bấm
 
 ## C. Panel không kích hoạt
 
-_Chờ operator kiểm bằng TextEdit._
+### Ngày 1 (2026-11-22)
+
+**Đạt.** Operator gõ liên tục trong TextEdit, bấm "Mở panel sau 10 giây" trên menu Probe. Panel `.nonactivatingPanel` mở bằng `orderFrontRegardless()`, không gọi `NSApp.activate`.
+
+| Câu hỏi | Kết quả |
+|---|---|
+| Panel có hiện không | Có, sau 10 giây. Lời operator: "panel có hiện sau 10s" |
+| Ký tự gõ tiếp có vẫn vào TextEdit không | Có. Lời operator (2026-11-22 21:56): "Vẫn vào TextEdit" |
+| Thanh menu còn ghi "TextEdit" không | Không báo riêng; lựa chọn operator chọn có ghi thanh menu vẫn là TextEdit |
+
+Kết luận: popup dạng panel không kích hoạt không cướp focus khi người dùng đang gõ ở app khác.
