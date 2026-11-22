@@ -1,0 +1,61 @@
+name: WidgetProbe
+options:
+  bundleIdPrefix: local.oswidget
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    # The only place the Team ID is set. The App Group derives from it:
+    # entitlements use $(TeamIdentifierPrefix)os-widget, Swift reads APP_GROUP_ID via Info.plist.
+    DEVELOPMENT_TEAM: 22LZWPB3XL
+    APP_GROUP_ID: $(DEVELOPMENT_TEAM).os-widget
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: YES
+targets:
+  WidgetProbe:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - target: ProbeWidget
+        embed: true
+        codeSign: true
+    entitlements:
+      path: App/App.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(TeamIdentifierPrefix)os-widget
+    info:
+      path: App/Info.plist
+      properties:
+        LSUIElement: true
+        CFBundleDisplayName: WidgetProbe
+        AppGroupID: $(APP_GROUP_ID)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.oswidget.probe
+  ProbeWidget:
+    type: app-extension
+    platform: macOS
+    sources: [Widget]
+    entitlements:
+      path: Widget/Widget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(TeamIdentifierPrefix)os-widget
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: ProbeWidget
+        AppGroupID: $(APP_GROUP_ID)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.oswidget.probe.widget
