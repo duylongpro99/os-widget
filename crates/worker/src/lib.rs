@@ -12,6 +12,9 @@ use worker::{
 /// Lifetime applied when the envelope carries no `ttl`.
 const DEFAULT_TTL_SECS: u64 = 30 * 24 * 60 * 60;
 
+/// Largest timestamp a JS `Date` can represent, in milliseconds since the epoch.
+const MAX_JS_DATE_MS: f64 = 8.64e15;
+
 #[event(fetch)]
 async fn fetch(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     if !authorized(&req, &env)? {
@@ -64,7 +67,12 @@ async fn post_items(mut req: Request, env: Env) -> Result<Response> {
         .ttl
         .unwrap_or(DEFAULT_TTL_SECS)
         .saturating_mul(1000);
-    let expires_at = js_sys::Date::new(&JsValue::from_f64(js_sys::Date::now() + ttl_ms as f64))
+    let expires_ms = js_sys::Date::now() + ttl_ms as f64;
+    // toISOString throws on dates past the JS range, which would trap the Wasm.
+    if expires_ms > MAX_JS_DATE_MS {
+        return error(400, "invalid envelope");
+    }
+    let expires_at = js_sys::Date::new(&JsValue::from_f64(expires_ms))
         .to_iso_string()
         .as_string()
         .ok_or("invalid ttl")?;
