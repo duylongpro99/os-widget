@@ -16,3 +16,4 @@ supabase/.temp/
 
 # Local agent settings
 .claude/settings.local.json
+.claude/hooks/.logs/
