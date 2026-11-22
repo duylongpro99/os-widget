@@ -32,7 +32,7 @@ Hoàn thành thử nghiệm D của Giai đoạn 0 (`docs/roadmap.md`) trên khu
 | 1 | [Chuẩn bị công cụ và tài khoản](./phase-01-chuan-bi-cong-cu-va-tai-khoan.md) | In progress (chờ Apple ID / Team ID trong Xcode) |
 | 2 | [Repo và schema Supabase](./phase-02-repo-va-schema-supabase.md) | Completed |
 | 3 | [App thử nghiệm A (kèm panel C)](./phase-03-app-thu-nghiem-a.md) | Pending |
-| 4 | [Khung Rust và deploy](./phase-04-khung-rust-va-deploy.md) | Pending |
+| 4 | [Khung Rust và deploy](./phase-04-khung-rust-va-deploy.md) | Completed |
 | 5 | [Đo D và quyết định](./phase-05-do-d-va-quyet-dinh.md) | Pending |
 | 6 | [Cập nhật tài liệu](./phase-06-cap-nhat-tai-lieu.md) | Pending |
 

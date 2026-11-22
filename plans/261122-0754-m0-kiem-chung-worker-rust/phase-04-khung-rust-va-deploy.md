@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Khung Rust và deploy"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: [2]
@@ -22,20 +22,20 @@ Dựng Cargo workspace có crate `envelope` và crate `worker` đúng bố cục
 
 ## Tasks & Steps
 
-- [ ] `envelope`: struct `Envelope` với các trường ở §3.1 (`v`, `kind`, `source`, `priority`, `title`, `summary`, `url`, `ttl`, `dedupe_key`). `body` là enum gắn thẻ theo `kind` (`#[serde(tag = "kind", content = "body")]` hoặc tương đương), hiện chỉ có biến thể `Notification { text: Option<String> }`. Chỉ phụ thuộc `serde`.
-- [ ] Unit test cho `envelope`: một envelope `notification` hợp lệ deserialize được; thiếu `title` thì lỗi; `kind` lạ thì lỗi.
-- [ ] `worker`: phụ thuộc `worker`, `serde`, `serde_json`, `envelope`, và `uuid` (features `v4`, `js`) để sinh `id`. Không dùng `reqwest` hay `postgrest-rs`.
-- [ ] Một token tạm `SPIKE_TOKEN` (Worker secret) kiểm ở cả hai endpoint qua header `Authorization: Bearer`. Giai đoạn 1 thay bằng hai token publish và client.
-- [ ] `POST /items`: deserialize body thành `Envelope` (lỗi thì trả 400), sinh `id`, đổi `ttl` thành `expires_at` (mặc định 30 ngày), gọi `POST {SUPABASE_URL}/rest/v1/items` với header `apikey`, `Authorization: Bearer <service role>` và `Prefer: return=representation`, rồi trả `{ "id": ... }`.
-- [ ] `GET /events?since=<seq>`: gọi `GET /rest/v1/events?seq=gt.<since>&order=seq.asc`, sau đó lấy các mục của sự kiện `item.created` bằng `GET /rest/v1/items?id=in.(...)`, và trả mảng sự kiện kèm mục.
-- [ ] `wrangler.toml`: `compatibility_date` là ngày deploy, lệnh build `worker-build --release`, `[observability] enabled = true`, `SUPABASE_URL` đặt ở `[vars]`.
-- [ ] Đặt secret: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` và `npx wrangler secret put SPIKE_TOKEN`.
-- [ ] Deploy: `npx wrangler deploy`. Ghi URL Worker và dòng dung lượng gửi lên (tổng và gzip) mà wrangler in ra.
+- [x] `envelope`: struct `Envelope` với các trường ở §3.1 (`v`, `kind`, `source`, `priority`, `title`, `summary`, `url`, `ttl`, `dedupe_key`). `body` là enum gắn thẻ theo `kind` (`#[serde(tag = "kind", content = "body")]` hoặc tương đương), hiện chỉ có biến thể `Notification { text: Option<String> }`. Chỉ phụ thuộc `serde`.
+- [x] Unit test cho `envelope`: một envelope `notification` hợp lệ deserialize được; thiếu `title` thì lỗi; `kind` lạ thì lỗi.
+- [x] `worker`: phụ thuộc `worker`, `serde`, `serde_json`, `envelope`, và `uuid` (features `v4`, `js`) để sinh `id`. Không dùng `reqwest` hay `postgrest-rs`.
+- [x] Một token tạm `SPIKE_TOKEN` (Worker secret) kiểm ở cả hai endpoint qua header `Authorization: Bearer`. Giai đoạn 1 thay bằng hai token publish và client.
+- [x] `POST /items`: deserialize body thành `Envelope` (lỗi thì trả 400), sinh `id`, đổi `ttl` thành `expires_at` (mặc định 30 ngày), gọi `POST {SUPABASE_URL}/rest/v1/items` với header `apikey`, `Authorization: Bearer <service role>` và `Prefer: return=representation`, rồi trả `{ "id": ... }`.
+- [x] `GET /events?since=<seq>`: gọi `GET /rest/v1/events?seq=gt.<since>&order=seq.asc`, sau đó lấy các mục của sự kiện `item.created` bằng `GET /rest/v1/items?id=in.(...)`, và trả mảng sự kiện kèm mục.
+- [x] `wrangler.toml`: `compatibility_date` là ngày deploy, lệnh build `worker-build --release`, `[observability] enabled = true`, `SUPABASE_URL` đặt ở `[vars]`.
+- [x] Đặt secret: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` và `npx wrangler secret put SPIKE_TOKEN`.
+- [x] Deploy: `npx wrangler deploy`. Ghi URL Worker và dòng dung lượng gửi lên (tổng và gzip) mà wrangler in ra.
 
 ## Verification
 
 - `cargo test -p envelope` pass.
-- `cargo build -p worker --target wasm32-unknown-unknown --release` thành công.
+- `cargo build -p os-widget-worker --target wasm32-unknown-unknown --release` thành công.
 - `curl -X POST <url>/items -H "Authorization: Bearer $SPIKE_TOKEN" -d '{"v":1,"kind":"notification","source":"m0","title":"hello","summary":"m0 smoke","body":{"text":"hi"}}'` trả về `id`.
 - `curl "<url>/events?since=0" -H "Authorization: Bearer $SPIKE_TOKEN"` có một sự kiện `item.created` kèm đúng mục đó.
 - Request không có token nhận 401.
