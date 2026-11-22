@@ -1,7 +1,7 @@
 ---
 title: "M0: kiểm chứng Worker Rust và khởi động thử nghiệm A"
 description: "Hoàn thành thử nghiệm D trên khung Rust thật của Giai đoạn 1 và khởi động thử nghiệm A song song, để vào Giai đoạn 1 ngay khi D có kết quả."
-status: pending
+status: in-progress
 priority: P1
 effort: 9.5h
 tags: [infra, backend, experimental]
@@ -29,8 +29,8 @@ Hoàn thành thử nghiệm D của Giai đoạn 0 (`docs/roadmap.md`) trên khu
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Chuẩn bị công cụ và tài khoản](./phase-01-chuan-bi-cong-cu-va-tai-khoan.md) | Pending |
-| 2 | [Repo và schema Supabase](./phase-02-repo-va-schema-supabase.md) | Pending |
+| 1 | [Chuẩn bị công cụ và tài khoản](./phase-01-chuan-bi-cong-cu-va-tai-khoan.md) | In progress (chờ Apple ID / Team ID trong Xcode) |
+| 2 | [Repo và schema Supabase](./phase-02-repo-va-schema-supabase.md) | Completed |
 | 3 | [App thử nghiệm A (kèm panel C)](./phase-03-app-thu-nghiem-a.md) | Pending |
 | 4 | [Khung Rust và deploy](./phase-04-khung-rust-va-deploy.md) | Pending |
 | 5 | [Đo D và quyết định](./phase-05-do-d-va-quyet-dinh.md) | Pending |

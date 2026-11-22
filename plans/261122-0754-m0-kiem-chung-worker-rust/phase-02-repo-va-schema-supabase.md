@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Repo và schema Supabase"
-status: pending
+status: completed
 priority: P1
 effort: "1h"
 dependencies: [1]
@@ -21,16 +21,16 @@ dependencies: [1]
 
 ## Tasks & Steps
 
-- [ ] `git init` ở gốc `os-widget`.
-- [ ] Tạo `.gitignore` chặn ít nhất: `target/`, `build/`, `node_modules/`, `.wrangler/`, `.dev.vars`, `.env*`, `*.xcodeproj/xcuserdata/`, `DerivedData/`, `.DS_Store`, `supabase/.temp/`.
-- [ ] `supabase init`, sau đó `supabase link --project-ref <ref>`.
-- [ ] Viết migration với đúng cột của `items` và `events` như §4.3 (không thêm, không bớt cột).
-- [ ] Viết hàm trigger `record_item_event()` chạy `after insert or update on items for each row`:
+- [x] `git init` ở gốc `os-widget`.
+- [x] Tạo `.gitignore` chặn ít nhất: `target/`, `build/`, `node_modules/`, `.wrangler/`, `.dev.vars`, `.env*`, `*.xcodeproj/xcuserdata/`, `DerivedData/`, `.DS_Store`, `supabase/.temp/`.
+- [x] `supabase init`, sau đó `supabase link --project-ref <ref>`.
+- [x] Viết migration với đúng cột của `items` và `events` như §4.3 (không thêm, không bớt cột).
+- [x] Viết hàm trigger `record_item_event()` chạy `after insert or update on items for each row`:
   - Insert: ghi `item.created`.
   - `read_at` từ null sang có giá trị: ghi `item.read`; từ có giá trị sang null: ghi `item.unread`.
   - `deleted_at` từ null sang có giá trị: ghi `item.deleted`.
-- [ ] Bật RLS trên cả hai bảng và không tạo policy nào. Service role vẫn ghi đọc được; quyền đọc `events` cho khoá anon là việc của Giai đoạn 1.
-- [ ] `supabase db push`.
+- [x] Bật RLS trên cả hai bảng và không tạo policy nào. Service role vẫn ghi đọc được; quyền đọc `events` cho khoá anon là việc của Giai đoạn 1.
+- [x] `supabase db push`.
 
 ## Verification
 

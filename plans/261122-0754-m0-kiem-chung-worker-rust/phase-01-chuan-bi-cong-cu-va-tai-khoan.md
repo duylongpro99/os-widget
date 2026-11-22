@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Chuẩn bị công cụ và tài khoản"
-status: pending
+status: in-progress
 priority: P1
 effort: "1h"
 dependencies: []
@@ -23,14 +23,14 @@ Kiểm tra máy ngày 2026-11-22: đã có `cargo`, `rustup`, `node`/`npx`, `sup
 
 ## Tasks & Steps
 
-- [ ] Cài target Wasm: `rustup target add wasm32-unknown-unknown`.
-- [ ] Cài `worker-build`: `cargo install worker-build`.
-- [ ] Chạy `npx wrangler --version` và ghi phiên bản; mọi lệnh wrangler sau đó dùng `npx wrangler@<phiên bản đó>`.
-- [ ] Người dùng đăng nhập Cloudflare: `! npx wrangler login` (tương tác, không tự chạy được). Xác nhận bằng `npx wrangler whoami`.
-- [ ] Người dùng đăng nhập Supabase: `! supabase login`. Tạo hoặc chọn một project ở gói miễn phí; ghi project ref và URL. Khoá service role chỉ giữ trong trình quản lý secret, không ghi vào file nào trong repo.
-- [ ] Cài XcodeGen: `brew install xcodegen`.
+- [x] Cài target Wasm: `rustup target add wasm32-unknown-unknown`.
+- [x] Cài `worker-build`: `cargo install worker-build`.
+- [x] Chạy `npx wrangler --version` và ghi phiên bản; mọi lệnh wrangler sau đó dùng `npx wrangler@<phiên bản đó>`.
+- [x] Người dùng đăng nhập Cloudflare: `! npx wrangler login` (tương tác, không tự chạy được). Xác nhận bằng `npx wrangler whoami`.
+- [x] Người dùng đăng nhập Supabase: `! supabase login`. Tạo hoặc chọn một project ở gói miễn phí; ghi project ref và URL. Khoá service role chỉ giữ trong trình quản lý secret, không ghi vào file nào trong repo.
+- [x] Cài XcodeGen: `brew install xcodegen`.
 - [ ] Người dùng đăng nhập Apple ID trong Xcode (Settings → Accounts) và lấy Team ID của Personal Team (10 ký tự).
-- [ ] Tra tài liệu hạn mức hiện hành của Cloudflare Workers gói miễn phí và ghi vào `reports/limits.md`, mỗi dòng kèm URL nguồn và ngày tra:
+- [x] Tra tài liệu hạn mức hiện hành của Cloudflare Workers gói miễn phí và ghi vào `reports/limits.md`, mỗi dòng kèm URL nguồn và ngày tra:
   - CPU mỗi request, và CPU khởi động Wasm có bị tính hay không.
   - Dung lượng Worker tối đa sau nén.
   - Số Cron Trigger và nhịp tối thiểu.
