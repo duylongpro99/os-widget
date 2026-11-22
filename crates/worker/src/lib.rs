@@ -29,7 +29,7 @@ async fn fetch(req: Request, env: Env, _ctx: worker::Context) -> Result<Response
 
 /// Checks `Authorization: Bearer <SPIKE_TOKEN>` in constant time.
 fn authorized(req: &Request, env: &Env) -> Result<bool> {
-    let expected = format!("Bearer {}", env.secret("SPIKE_TOKEN")?.to_string());
+    let expected = format!("Bearer {}", env.secret("SPIKE_TOKEN")?);
     let given = req.headers().get("Authorization")?.unwrap_or_default();
     let (a, b) = (expected.as_bytes(), given.as_bytes());
     let diff = a
