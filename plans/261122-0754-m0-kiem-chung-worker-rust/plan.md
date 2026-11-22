@@ -33,7 +33,7 @@ Hoàn thành thử nghiệm D của Giai đoạn 0 (`docs/roadmap.md`) trên khu
 | 2 | [Repo và schema Supabase](./phase-02-repo-va-schema-supabase.md) | Completed |
 | 3 | [App thử nghiệm A (kèm panel C)](./phase-03-app-thu-nghiem-a.md) | Pending |
 | 4 | [Khung Rust và deploy](./phase-04-khung-rust-va-deploy.md) | Completed |
-| 5 | [Đo D và quyết định](./phase-05-do-d-va-quyet-dinh.md) | Pending |
+| 5 | [Đo D và quyết định](./phase-05-do-d-va-quyet-dinh.md) | Completed (Rust trượt ngưỡng p99, operator giữ Rust; xem [d-results](./reports/d-results.md)) |
 | 6 | [Cập nhật tài liệu](./phase-06-cap-nhat-tai-lieu.md) | Pending |
 
 Thứ tự: 1 → 2 → 3 và 4 (độc lập, nên làm 3 trước để đồng hồ 7 ngày chạy sớm) → 5 → 6. Phase 6 cần kết quả của cả 3 và 5.
