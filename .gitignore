@@ -1,0 +1,18 @@
+# Build output
+target/
+build/
+DerivedData/
+node_modules/
+
+# Tooling state
+.wrangler/
+supabase/.temp/
+*.xcodeproj/xcuserdata/
+.DS_Store
+
+# Secrets
+.dev.vars
+.env*
+
+# Local agent settings
+.claude/settings.local.json
