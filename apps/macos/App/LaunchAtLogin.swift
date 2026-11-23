@@ -17,14 +17,24 @@ enum LaunchAtLogin {
         status == .enabled
     }
 
-    /// Registers the app once, on the first launch. Later launches leave the user's choice alone.
+    /// Registers the app on the first launch. Once registration succeeds or waits for the user's
+    /// approval, later launches leave the user's choice alone; a failed registration is tried again on
+    /// the next launch.
     static func enableOnFirstLaunch(defaults: UserDefaults = .standard) {
         guard !defaults.bool(forKey: configuredKey) else { return }
-        defaults.set(true, forKey: configuredKey)
-        setEnabled(true)
+        if setEnabled(true) || status == .requiresApproval {
+            defaults.set(true, forKey: configuredKey)
+        }
     }
 
-    static func setEnabled(_ enabled: Bool) {
+    /// Registers or unregisters the app. Returns false when `SMAppService` reports an error.
+    @discardableResult
+    static func setEnabled(_ enabled: Bool) -> Bool {
+        defer {
+            if status == .requiresApproval {
+                SMAppService.openSystemSettingsLoginItems()
+            }
+        }
         do {
             if enabled {
                 try SMAppService.mainApp.register()
@@ -32,11 +42,10 @@ enum LaunchAtLogin {
                 try SMAppService.mainApp.unregister()
             }
             log.info("login.set enabled=\(enabled, privacy: .public) status=\(String(describing: status), privacy: .public)")
+            return true
         } catch {
             log.error("login.set_failed enabled=\(enabled, privacy: .public) error=\(String(describing: error), privacy: .public)")
-        }
-        if status == .requiresApproval {
-            SMAppService.openSystemSettingsLoginItems()
+            return false
         }
     }
 }
