@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Sync engine"
-status: pending
+status: completed
 priority: P1
 effort: "6h"
 dependencies: [2]
@@ -109,3 +109,12 @@ App giữ kho cục bộ khớp với server: đồng bộ đầu bằng `GET /i
 ## Rollback
 
 Xoá `Sync/` và test của phase, trả `SyncWiring.swift` về khung rỗng của Phase 1. Kho và hàng đợi của Phase 2 không đổi.
+
+## Ghi chú
+
+- Quyết định của operator (2026-11-23, khoảng 21:05): "Cook ngay, chưa ký/cài (Đề xuất)". Phase này chỉ kiểm bằng `swift test` và build Debug không ký; app chưa chạy.
+- Kiểm Realtime với Supabase thật hoãn tới Phase 6: lúc cook không có khoá publishable (lệnh `supabase projects api-keys` không trả về sau 60 giây, nhiều khả năng chờ đăng nhập), nên chưa có reply join, chưa biết có tín hiệu `INSERT` hay không. Test `liveJoinAndInsert` chạy khi có `OSWIDGET_LIVE_REALTIME=1`, `OSWIDGET_SUPABASE_URL`, `OSWIDGET_SUPABASE_KEY`; nếu join bị từ chối hoặc có message `system` báo lỗi `postgres_changes`, ghi nguyên văn và thử thêm `access_token` như mục rủi ro.
+- Hoãn tới Phase 6 (cần app chạy), theo báo cáo cook: `os-widget publish` làm xuất hiện `realtime.state joined` và `sync.applied` trong vài giây; tắt Wi-Fi 1 phút rồi bật lại thì có một vòng sync ngay; `lsof` chỉ thấy một WebSocket tới Supabase; ngủ rồi thức thì socket đóng, mở lại và sync; App Sandbox cho phép `URLSessionWebSocketTask` và `NWPathMonitor` với `network.client` (chỉ xác nhận được trên bản ký).
+- Đổi riêng token trong cài đặt nay kích hoạt một vòng sync ngay (`SyncSettings`, so cả token trong Keychain khi `UserDefaults` báo thay đổi); chỉ đổi URL Supabase hoặc khoá mới mở lại Realtime.
+- Phase 3 sở hữu kích hoạt sau thao tác người dùng (`QueueWatcher`); Phase 4 và 5 chỉ gọi `markRead`/`delete`.
+- Báo cáo: [cook](../reports/cook-261123-m2-p03.md), [review](../reports/review-261123-m2-p03.md).
