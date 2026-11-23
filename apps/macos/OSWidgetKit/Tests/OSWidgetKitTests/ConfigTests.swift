@@ -52,12 +52,16 @@ struct AppConfigTests {
     @Test(arguments: [
         ("https://worker.example.dev", true),
         ("  http://localhost:8787  ", true),
+        ("http://127.0.0.1:8787", true),
+        ("http://[::1]:8787", true),
+        ("http://worker.example.dev", false),
+        ("http://192.168.1.10:8787", false),
         ("worker.example.dev", false),
         ("ftp://worker.example.dev", false),
         ("https://", false),
         ("", false),
     ])
-    func parsesOnlyHTTPURLsWithAHost(text: String, accepted: Bool) {
+    func acceptsHTTPSOrLoopbackHTTPWithAHost(text: String, accepted: Bool) {
         #expect((AppConfig.parseServerURL(text) != nil) == accepted)
     }
 }

@@ -36,15 +36,26 @@ public struct AppConfig: @unchecked Sendable {
         workerURL != nil && supabaseURL != nil && supabasePublishableKey != nil
     }
 
-    /// Parses a URL typed by the user. Only `http` and `https` URLs with a host are accepted.
+    /// Parses a URL typed by the user. Only `https` URLs with a host are accepted, plus `http` to this
+    /// machine for a local server: the client token is sent to this URL and must not cross the network
+    /// in clear text.
     public static func parseServerURL(_ text: String) -> URL? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed),
-              let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
-              let host = url.host(), !host.isEmpty
+              let scheme = url.scheme?.lowercased(),
+              let host = url.host()?.lowercased(), !host.isEmpty
         else { return nil }
-        return url
+        switch scheme {
+        case "https":
+            return url
+        case "http":
+            return loopbackHosts.contains(host) ? url : nil
+        default:
+            return nil
+        }
     }
+
+    private static let loopbackHosts: Set<String> = ["localhost", "127.0.0.1", "::1"]
 
     private func string(forKey key: String) -> String? {
         guard let value = defaults.string(forKey: key), !value.isEmpty else { return nil }

@@ -62,10 +62,10 @@ final class SettingsModel {
         let worker = workerURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let supabase = supabaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard worker.isEmpty || AppConfig.parseServerURL(worker) != nil else {
-            return fail("URL Worker không hợp lệ.")
+            return fail("URL Worker phải là https://… (http chỉ dùng cho localhost).")
         }
         guard supabase.isEmpty || AppConfig.parseServerURL(supabase) != nil else {
-            return fail("URL Supabase không hợp lệ.")
+            return fail("URL Supabase phải là https://… (http chỉ dùng cho localhost).")
         }
         do {
             try tokenStore.save(token.trimmingCharacters(in: .whitespacesAndNewlines))
