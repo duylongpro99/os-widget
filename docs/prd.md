@@ -96,7 +96,7 @@ Một người dùng duy nhất, dùng một MacBook và một Mac mini (macOS 2
 | Mã | Yêu cầu |
 |---|---|
 | NFR-1 | Mục mới hiện ở popup trong vòng 5 giây khi app đang chạy và có mạng. |
-| NFR-2 | Widget có thể trễ hơn popup. Mức trễ chấp nhận được sẽ chốt sau khi đo (xem roadmap, giai đoạn 0). |
+| NFR-2 | Khi app menu bar đang chạy và máy đang thức, widget hiện mục mới trong 5 giây kể từ lúc app nhận mục, ở ít nhất 95% trường hợp. App gộp các lần reload widget, không quá một lần mỗi 5 giây. Ngưỡng dựa trên [đo B](../plans/261122-0754-m0-kiem-chung-worker-rust/reports/b-results.md); giới hạn reload khi app chạy nền sẽ kiểm lại ở Giai đoạn 3. |
 | NFR-3 | Toàn bộ hệ thống nằm trong hạn mức miễn phí của Cloudflare Workers và Supabase. |
 | NFR-4 | Mọi request đi qua HTTPS và có token. Token publish và token của app tách riêng. |
 | NFR-5 | App chạy nền dùng ít tài nguyên: không poll dày hơn mức cần, không giữ nhiều hơn một kết nối realtime. |
