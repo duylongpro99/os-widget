@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Thanh menu, danh sách và view thẻ"
-status: pending
+status: completed
 priority: P1
 effort: "6h"
 dependencies: [2]
@@ -85,3 +85,12 @@ Icon thanh menu có dấu báo chưa đọc, bấm mở danh sách mục mới n
 ## Rollback
 
 Trả `MenuBarController.swift` về khung của Phase 1, xoá các file còn lại của phase. Nếu đã bật chạy khi đăng nhập, tắt ở menu trước (hoặc gỡ ở System Settings > Login Items).
+
+## Ghi chú
+
+- Quyết định của operator (2026-11-23, khoảng 21:05): "Cook ngay, chưa ký/cài (Đề xuất)". Phase này chỉ kiểm bằng `swift test` và build Debug không ký; app chưa chạy, `SMAppService` chưa bao giờ được gọi.
+- Bấm liên kết trong thẻ (block `link` hoặc liên kết markdown): chỉ mở đúng liên kết đó nếu `URLPolicy.isOpenable` cho phép và đánh dấu mục đã đọc; không chạy thao tác bấm thẻ và không mở `url` của mục. Làm qua `View.onCardClick(tap:link:)` trong `OSWidgetKit` (`OpenURLAction` trong environment, thao tác bấm thẻ bị bỏ khi cùng cú bấm đã mở liên kết). Phase 5 nên dùng cùng modifier cho thẻ trong popup.
+- Không có thông báo sync: Phase 3 tự sync khi `ItemStore.queue` có thao tác mới. Phase 4 sở hữu `Notification.Name.openItemListRequested` (`"local.oswidget.open-item-list"`); `isListOpen` tính từ `popover.isShown`.
+- Lần chạy đầu chỉ ghi cờ "đã cấu hình" khi đăng ký chạy khi đăng nhập thành công hoặc đang chờ người dùng duyệt; đăng ký lỗi thì thử lại ở lần chạy sau.
+- Hoãn tới Phase 6 (cần app chạy): mọi mục kiểm bằng tay ở Verification; mục mới nổi bật khi danh sách đang mở; menu chuột phải và các dấu tích; giao diện sáng và tối; bấm liên kết trong thẻ chỉ mở liên kết đó; bấm icon khi popover đang mở thì đóng chứ không mở lại; chạy khi đăng nhập trên bản ở `/Applications`.
+- Báo cáo: [cook](../reports/cook-261123-m2-p04.md), [review](../reports/review-261123-m2-p04.md).
