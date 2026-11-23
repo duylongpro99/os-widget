@@ -1,6 +1,6 @@
 # Roadmap: os-widget
 
-Cập nhật: 2026-11-22. Yêu cầu nằm ở [prd.md](prd.md), thiết kế ở [architecture.md](architecture.md).
+Cập nhật: 2026-11-23. Yêu cầu nằm ở [prd.md](prd.md), thiết kế ở [architecture.md](architecture.md).
 
 Roadmap xếp theo thứ tự và điều kiện hoàn thành, không gắn ngày. Mỗi giai đoạn kết thúc bằng một thứ chạy được và kiểm chứng được.
 
@@ -36,7 +36,7 @@ Mục đích là trả lời bốn câu hỏi có thể làm đổi thiết kế
 | Thử nghiệm | Trạng thái |
 |---|---|
 | D | Xong. Worker Rust đọc, ghi Supabase qua REST được, nhưng trượt ngưỡng p99 ≤ 5 ms đặt ra: `POST /items` p50 2 ms, p99 11 ms; `GET /events` p50 3 ms, p99 7 ms (hai lần đo, 140–147 request mỗi endpoint). Request trúng isolate mới tốn 16–21 ms, vượt hạn mức 10 ms nhưng không bị chặn. Dung lượng 563.08 KiB chưa nén, dưới hạn mức 64 MiB. Chủ dự án quyết định giữ Rust và chấp nhận rủi ro (architecture.md mục 9). |
-| A | Đang chạy. App thử nghiệm cài ngày 2026-11-22, ký bằng Personal Team miễn phí, không có provisioning profile. Ngày 1 đạt: widget đọc được dữ liệu app ghi qua App Group. Kiểm ngày 8 vào 2026-11-30. |
+| A | Đang chạy. App thử nghiệm cài ngày 2026-11-22, ký bằng Personal Team miễn phí, không có provisioning profile. Ngày 1 đạt: widget đọc được dữ liệu app ghi qua App Group. Ngày 2 app vẫn chạy. Kiểm ngày 8 vào 2026-11-30. |
 | B | Chưa đo. Đo bằng app thử nghiệm A trước Giai đoạn 2. |
 | C | Ngày 1 đạt: panel không kích hoạt tự mở mà không lấy focus khỏi TextEdit đang gõ. |
 
@@ -44,7 +44,7 @@ Mục đích là trả lời bốn câu hỏi có thể làm đổi thiết kế
 
 - Tạo bảng `items`, `events`, trigger ghi sự kiện và chính sách RLS trên Supabase.
 - Crate `envelope` với ba loại: `notification`, `vocab`, `generic`.
-- Worker với năm endpoint và hai token. `GET /events` giới hạn số sự kiện mỗi trang, vì đọc 159 sự kiện một lần đã tốn 15–19 ms CPU.
+- Worker với năm endpoint và hai token. `GET /events` nhận tham số `limit` (mặc định 100, tối đa 100), vì đọc 159 sự kiện một lần đã tốn 15–19 ms CPU. Client lấy `seq` cuối cùng làm `since` cho lần gọi sau và gọi tiếp khi nhận đủ một trang.
 - CLI publish dùng lại crate `envelope`.
 - Tác vụ định kỳ dọn mục hết hạn, mục đã xoá và sự kiện cũ.
 
