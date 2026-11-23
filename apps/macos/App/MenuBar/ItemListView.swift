@@ -94,8 +94,7 @@ private struct ItemRow: View {
             VStack(alignment: .leading, spacing: 0) {
                 CardView(item: item)
                     .opacity(item.isRead ? 0.6 : 1)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: open)
+                    .onCardClick(tap: open, link: openLink)
                 HStack(spacing: 12) {
                     Spacer()
                     if !item.isRead {
@@ -116,11 +115,21 @@ private struct ItemRow: View {
 
     /// Clicking a card marks it read and opens its link when the link is allowed.
     private func open() {
-        if !item.isRead {
-            store.markRead(item.id)
-        }
+        markRead()
         if let url = URLPolicy.openableURL(item.url) {
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Clicking a link inside the card marks it read and opens only that link, not the item's own url.
+    private func openLink(_ url: URL) {
+        markRead()
+        NSWorkspace.shared.open(url)
+    }
+
+    private func markRead() {
+        if !item.isRead {
+            store.markRead(item.id)
         }
     }
 }

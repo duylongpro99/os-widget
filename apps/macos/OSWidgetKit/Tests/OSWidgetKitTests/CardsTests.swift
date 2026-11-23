@@ -116,4 +116,28 @@ struct CardsTests {
             #expect(image.height > 0, "\(item.kind)")
         }
     }
+
+    // MARK: Card clicks
+
+    @MainActor
+    @Test func cardTapRunsWhenNoLinkOpened() {
+        let gate = CardClickGate()
+        #expect(gate.allowsTap(at: 10))
+    }
+
+    @MainActor
+    @Test func cardTapIsDroppedForTheClickThatOpenedALink() {
+        let gate = CardClickGate()
+        gate.linkOpened(at: 10)
+        #expect(!gate.allowsTap(at: 10))
+        #expect(!gate.allowsTap(at: 10.2))
+        #expect(!gate.allowsTap(at: 9.8))
+    }
+
+    @MainActor
+    @Test func laterCardTapRunsAfterALinkOpened() {
+        let gate = CardClickGate()
+        gate.linkOpened(at: 10)
+        #expect(gate.allowsTap(at: 10 + CardClickGate.linkWindow + 0.1))
+    }
 }
