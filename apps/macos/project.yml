@@ -37,6 +37,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleDisplayName: OS Widget
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         AppGroupID: $(APP_GROUP_ID)
     settings:
       base:
