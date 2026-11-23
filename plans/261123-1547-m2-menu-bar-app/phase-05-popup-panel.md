@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Popup panel"
-status: pending
+status: completed
 priority: P1
 effort: "5h"
 dependencies: [2]
@@ -88,3 +88,11 @@ Khi có mục mới, một panel không kích hoạt duy nhất hiện dưới i
 ## Rollback
 
 Trả `PopupController.swift` về khung của Phase 1 và xoá các file còn lại của phase. App vẫn chạy với danh sách và dấu báo, chỉ không có popup.
+
+## Ghi chú
+
+- Quyết định của operator (2026-11-23, khoảng 21:05): "Cook ngay, chưa ký/cài (Đề xuất)". Phase này chỉ kiểm bằng `swift test` và build Debug không ký; app chưa chạy.
+- Ghép với Phase 4: popup dùng `CardView(item:)` (thẻ tạm đã xoá), `URLPolicy.openableURL` để mở `url` của mục, và `View.onCardClick(tap:link:)`: bấm thẻ thì đánh dấu đã đọc, mở `url` nếu được phép, đóng popup; bấm liên kết trong thẻ thì đánh dấu đã đọc, chỉ mở liên kết đó, đóng popup. Nút đóng không đánh dấu đã đọc. Dòng "+N mục khác" đóng popup rồi gửi `Notification.Name.openItemListRequested` để thanh menu mở danh sách. Panel rộng bằng `CardMetrics.width` cộng cột nút đóng.
+- Phase 5 chỉ quan sát `ItemStore.announcement`; Phase 3 gọi `announce` tối đa một lần mỗi vòng sync nên giới hạn "chỉ giữ thông báo mới nhất" do bên gọi xử lý.
+- Hoãn tới Phase 6 (cần app chạy), theo báo cáo cook: kiểm focus với TextEdit và `lsappinfo front` (lần đầu kiểm lớp con có `canBecomeKey = false`); tự đóng sau 30 giây và dừng đếm khi chuột trong panel; thay nội dung với "+1 mục khác" (cần Phase 3); không hiện với `low`, loại bị tắt, chế độ yên lặng, danh sách mở, kèm log `popup.suppressed`; hiện trên app toàn màn hình; tự đóng không đánh dấu đã đọc; nút bấm có tác dụng ngay lần đầu và panel vừa nội dung (kể cả khi ảnh trong thẻ tải xong sau); bấm liên kết trong thẻ chỉ mở liên kết đó; "+N" mở danh sách.
+- Báo cáo: [cook](../reports/cook-261123-m2-p05.md), [review](../reports/review-261123-m2-p05.md).
