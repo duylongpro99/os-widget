@@ -37,7 +37,7 @@ Mục đích là trả lời bốn câu hỏi có thể làm đổi thiết kế
 |---|---|
 | D | Xong. Worker Rust đọc, ghi Supabase qua REST được, nhưng trượt ngưỡng p99 ≤ 5 ms đặt ra: `POST /items` p50 2 ms, p99 11 ms; `GET /events` p50 3 ms, p99 7 ms (hai lần đo, 140–147 request mỗi endpoint). Request trúng isolate mới tốn 16–21 ms, vượt hạn mức 10 ms nhưng không bị chặn. Dung lượng 563.08 KiB chưa nén, dưới hạn mức 64 MiB. Chủ dự án quyết định giữ Rust và chấp nhận rủi ro (architecture.md mục 9). |
 | A | Đang chạy. App thử nghiệm cài ngày 2026-11-22, ký bằng Personal Team miễn phí, không có provisioning profile. Ngày 1 đạt: widget đọc được dữ liệu app ghi qua App Group. Ngày 2 app vẫn chạy. Kiểm ngày 8 vào 2026-11-30. |
-| B | Chưa đo. Đo bằng app thử nghiệm A trước Giai đoạn 2. |
+| B | Xong. Reload được cho phép: widget vẽ lại sau p50 66 ms, p90 84 ms, tối đa 270 ms (69 mẫu); bị throttle khi gọi dồn (chạy lại mỗi 5 s, chậm nhất 3,2 s). Đề xuất NFR-2: mục mới hiện trong 5 s ở ≥ 95% trường hợp khi app chạy; ngân sách reload nền chưa đo ([b-results.md](../plans/261122-0754-m0-kiem-chung-worker-rust/reports/b-results.md)). |
 | C | Ngày 1 đạt: panel không kích hoạt tự mở mà không lấy focus khỏi TextEdit đang gõ. |
 
 ## Giai đoạn 1: Server
