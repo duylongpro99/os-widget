@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Xcode project, package dùng chung và cấu hình"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: []
@@ -75,3 +75,10 @@ Có một app agent trên thanh menu build được từ `apps/macos/project.yml
 ## Rollback
 
 Xoá `apps/macos/` và dòng `.gitignore` vừa thêm. Không có gì ngoài repo bị đổi, trừ mục Keychain `local.oswidget.app` (xoá bằng `security delete-generic-password -s local.oswidget.app -a client-token`) và bản app Debug trong DerivedData.
+
+## Ghi chú
+
+- Nhánh A chưa chọn: kết quả kiểm ngày 8 của thử nghiệm A chưa có (2026-11-30). Mã viết theo nhánh "A đạt" (entitlement App Group, `StoreLocation.appGroup` dùng group container qua `AppGroupID`).
+- Quyết định của operator (2026-11-23, khoảng 21:05): "Cook ngay, chưa ký/cài (Đề xuất)". Phase này chỉ kiểm bằng `swift test` và build Debug không ký.
+- Các mục Verification sau hoãn tới sau 30/11, làm ở Phase 6: build có ký (`-allowProvisioningUpdates`); `codesign -d --entitlements -` xác nhận sandbox, network client và App Group; icon trên thanh menu, không có icon Dock; vòng lưu và đọc lại token qua Keychain; `StoreLocation.appGroup` với group container thật.
+- Báo cáo: [cook](../reports/cook-261123-m2-p01.md), [review](../reports/review-261123-m2-p01.md).
