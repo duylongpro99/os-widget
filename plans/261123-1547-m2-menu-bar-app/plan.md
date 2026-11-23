@@ -74,7 +74,7 @@ Thêm: `swift test` của package `OSWidgetKit` pass; app build được bằng 
 | # | Phase | Status | Phụ thuộc thử nghiệm |
 |---|-------|--------|---|
 | 1 | [Xcode project, package dùng chung và cấu hình](./phase-01-xcode-project-va-cau-hinh.md) | Done (chưa ký) | A |
-| 2 | [Mô hình, kho cục bộ và hàng đợi thao tác](./phase-02-kho-cuc-bo-va-hang-doi.md) | Pending | A (vị trí kho) |
+| 2 | [Mô hình, kho cục bộ và hàng đợi thao tác](./phase-02-kho-cuc-bo-va-hang-doi.md) | Done | A (vị trí kho) |
 | 3 | [Sync engine](./phase-03-sync-engine.md) | Pending | Không |
 | 4 | [Thanh menu, danh sách và view thẻ](./phase-04-thanh-menu-danh-sach-va-the.md) | Pending | Không |
 | 5 | [Popup panel](./phase-05-popup-panel.md) | Pending | C (đã đạt) |

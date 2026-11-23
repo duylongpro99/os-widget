@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Mô hình, kho cục bộ và hàng đợi thao tác"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [1]
@@ -90,3 +90,11 @@ dependencies: [1]
 ## Rollback
 
 Xoá các file trong `Model/`, `Store/` và test của phase. Kho trên máy là `store.json` trong group container (hoặc Application Support): xoá file đó; app đồng bộ lại từ server ở lần chạy sau.
+
+## Ghi chú
+
+- Quyết định của operator (2026-11-23, khoảng 21:05): "Cook ngay, chưa ký/cài (Đề xuất)". Phase này chỉ kiểm bằng `swift test` và build Debug không ký; `ItemStore.live()` với group container thật chưa chạy, làm ở Phase 6.
+- Fixture: `events.json` là trang thật của `GET /events?since=352` (seq 383–392, chỉ mục `source: "acceptance"`), thêm tay `item.created` với `item: null` và một loại sự kiện lạ. `items.json` dùng `seq` 392 thật cùng một dòng thật (vì `GET /items` thật đã rỗng), thêm tay mục `weather`, `vocab`, `generic` có block lạ, `body` sai dạng và mục thiếu `summary`. Không có token hay dữ liệu cá nhân.
+- Sai khác đã chấp nhận khi review: `outcome(for:)` coi 408 và 429 là thử lại, mã 4xx khác bị bỏ như 400 để không gửi lại mãi; `ItemStore.live()` chạy kho trong bộ nhớ và ghi log `store.location_unavailable` khi không có container (giữ chữ ký không ném lỗi của Phase 1); `Package.swift` thêm `resources: [.copy("Fixtures")]` cho target test.
+- Review thêm một quy tắc: mục đã xoá không nhận thao tác nào nữa, kể cả khi thao tác xoá đã gửi xong.
+- Báo cáo: [cook](../reports/cook-261123-m2-p02.md), [review](../reports/review-261123-m2-p02.md).
