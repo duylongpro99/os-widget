@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Deploy, nghiệm thu và cập nhật tài liệu"
-status: pending
+status: completed
 priority: P1
 effort: "2h"
 dependencies: [1, 2, 3, 4]
@@ -24,13 +24,13 @@ Deploy Worker với hai token thật, gỡ `SPIKE_TOKEN`, kiểm sáu tiêu chí
 
 ### Deploy
 
-- [ ] Sinh hai token ngẫu nhiên (`openssl rand -hex 32`), đặt `npx wrangler secret put PUBLISH_TOKEN` và `npx wrangler secret put CLIENT_TOKEN`. Lưu token ở nơi chủ dự án chọn (trình quản lý mật khẩu), không lưu trong repo.
-- [ ] `npx wrangler deploy` từ `crates/worker`. Ghi dòng dung lượng tổng và gzip.
-- [ ] `npx wrangler secret delete SPIKE_TOKEN`.
+- [x] Sinh hai token ngẫu nhiên (`openssl rand -hex 32`), đặt `npx wrangler secret put PUBLISH_TOKEN` và `npx wrangler secret put CLIENT_TOKEN`. Lưu token ở nơi chủ dự án chọn (trình quản lý mật khẩu), không lưu trong repo.
+- [x] `npx wrangler deploy` từ `crates/worker`. Ghi dòng dung lượng tổng và gzip.
+- [x] `npx wrangler secret delete SPIKE_TOKEN`.
 
 ### Script nghiệm thu
 
-- [ ] `scripts/acceptance-server.sh <worker-url>`, đọc `PUBLISH_TOKEN`, `CLIENT_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` từ môi trường; header token đi qua file tạm `chmod 600` như `measure-worker.sh`. Mỗi tiêu chí in `PASS` hoặc `FAIL` kèm lý do; thoát 1 nếu có `FAIL`. Dùng một `run_id` theo thời gian để dữ liệu thử không đụng nhau.
+- [x] `scripts/acceptance-server.sh <worker-url>`, đọc `PUBLISH_TOKEN`, `CLIENT_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` từ môi trường; header token đi qua file tạm `chmod 600` như `measure-worker.sh`. Mỗi tiêu chí in `PASS` hoặc `FAIL` kèm lý do; thoát 1 nếu có `FAIL`. Dùng một `run_id` theo thời gian để dữ liệu thử không đụng nhau.
   1. Lấy `seq` từ `GET /items`; `cargo run -q -p cli -- publish ...` với `OS_WIDGET_SERVER` trỏ vào Worker; `GET /events?since=<seq>` có `item.created` với `item.id` bằng id CLI in ra.
   2. `POST /items` thiếu `title` → 400 và `message` chứa `title`; `vocab` thiếu `definition` → 400 và `field` là `body.meanings[0]`; `kind: "weather"` → 400 và `field` là `kind`.
   3. Publish hai lần cùng `dedupe_key` → cùng `id`, lần đầu 201, lần hai 200; `GET /events?since=<seq>` chỉ có một `item.created` cho id đó.
@@ -40,12 +40,12 @@ Deploy Worker với hai token thật, gỡ `SPIKE_TOKEN`, kiểm sáu tiêu chí
   - Thêm: `GET /events?since=0&limit=500` trả tối đa 100 sự kiện; `limit=0` → 400.
   - Cuối script: `DELETE` các mục đã tạo.
   - Thêm: một mục publish không có `ttl` có `expires_at` cách `created_at` 7 ngày (sai số vài giây).
-- [ ] Chạy script trên bản deploy; lưu đầu ra vào `plans/261123-0159-m1-server/reports/acceptance.md` (không có token).
-- [ ] Chạy `scripts/measure-worker.sh` với một lượng nhỏ (`count` 10) chỉ để chắc script còn chạy; không cần phân tích CPU.
+- [x] Chạy script trên bản deploy; lưu đầu ra vào `plans/261123-0159-m1-server/reports/acceptance.md` (không có token).
+- [x] Chạy `scripts/measure-worker.sh` với một lượng nhỏ (`count` 10) chỉ để chắc script còn chạy; không cần phân tích CPU.
 
 ### Tài liệu
 
-- [ ] `docs/architecture.md`:
+- [x] `docs/architecture.md`:
   - §3.1: `ttl` mặc định 7 ngày (bỏ chữ "tạm đặt 30 ngày, chờ xác nhận").
   - §3.2: trường bắt buộc và tuỳ chọn của `vocab`; quy tắc URL của `image`, `link`, `audio_url`.
   - §4.1: hai token và 401/403; định dạng lỗi `{error, field, message}`; 201/200 của `POST /items`; dạng `{seq, items}` của `GET /items`; `limit` của `GET /events`; body `PATCH`; 204/404 của `PATCH`, `DELETE` và việc client coi 404 là xong.
@@ -53,8 +53,8 @@ Deploy Worker với hai token thật, gỡ `SPIKE_TOKEN`, kiểm sáu tiêu chí
   - §4.3: quyền hai lớp cho anon; `purge_old_rows` qua `pg_cron`, thời gian giữ 30 ngày và lý do; `item: null` khi mục đã bị xoá hẳn.
   - §5: máy ngoại tuyến quá thời gian giữ dựa vào đối chiếu `GET /items`.
   - Dòng "Cập nhật" và "Trạng thái" ở đầu file.
-- [ ] `docs/roadmap.md`: thêm mục "Kết quả" cho Giai đoạn 1 với từng tiêu chí và đường dẫn tới báo cáo nghiệm thu; chuyển câu 2 của mục "Việc cần quyết định" sang "Đã chốt": `ttl` mặc định 7 ngày.
-- [ ] `docs/prd.md` §11 câu 3: ghi đã chốt `ttl` mặc định 7 ngày (2026-11-23).
+- [x] `docs/roadmap.md`: thêm mục "Kết quả" cho Giai đoạn 1 với từng tiêu chí và đường dẫn tới báo cáo nghiệm thu; chuyển câu 2 của mục "Việc cần quyết định" sang "Đã chốt": `ttl` mặc định 7 ngày.
+- [x] `docs/prd.md` §11 câu 3: ghi đã chốt `ttl` mặc định 7 ngày (2026-11-23).
 
 ## Verification
 

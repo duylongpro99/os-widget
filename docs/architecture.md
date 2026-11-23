@@ -1,6 +1,6 @@
 # Kiến trúc: os-widget
 
-Cập nhật: 2026-11-22. Trạng thái: thiết kế; giai đoạn 0 đã có khung Worker Rust thử nghiệm và kết quả đo, xem [roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng). Các điểm còn ghi "chưa kiểm chứng" vẫn chờ giai đoạn 0 hoặc giai đoạn dùng tới chúng. Yêu cầu nằm ở [prd.md](prd.md).
+Cập nhật: 2026-11-23. Trạng thái: server (mục 3, 4.1 đến 4.3, 5 phía server) đã chạy trên bản deploy và qua nghiệm thu Giai đoạn 1, xem [roadmap.md](roadmap.md#giai-đoạn-1-server); client (mục 6) và bộ từ vựng (mục 4.4) vẫn là thiết kế. Giai đoạn 0 có kết quả đo ở [roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng). Các điểm còn ghi "chưa kiểm chứng" vẫn chờ giai đoạn 0 hoặc giai đoạn dùng tới chúng. Yêu cầu nằm ở [prd.md](prd.md).
 
 ## 1. Tổng quan
 
@@ -80,12 +80,12 @@ ntfy đã được cân nhắc làm server và bị loại vì không lưu đư�
 | `priority` | không | `low`, `normal` (mặc định) hoặc `high`. `low` không tự mở popup. |
 | `title` | có | Text thuần, một dòng. |
 | `summary` | có | Text thuần, ngắn. Cùng `title` là hiển thị dự phòng ở mọi nơi. |
-| `url` | không | Liên kết mở khi bấm vào thẻ. |
-| `ttl` | không | Số giây tồn tại. Server đổi thành `expires_at`. Mặc định tạm đặt 30 ngày, chờ xác nhận. |
-| `dedupe_key` | không | Gửi lại cùng khoá không tạo mục mới. |
+| `url` | không | Liên kết mở khi bấm vào thẻ. Phải bắt đầu bằng `http://` hoặc `https://`. |
+| `ttl` | không | Số giây tồn tại, ít nhất 1. Server đổi thành `expires_at`. Mặc định 7 ngày (604800 giây). |
+| `dedupe_key` | không | Gửi lại cùng khoá không tạo mục mới. Không được rỗng. |
 | `body` | tuỳ `kind` | Dữ liệu riêng của loại nội dung. |
 
-Server sinh `id` và `created_at`. Bên gửi không đặt hai trường này.
+Server sinh `id` (UUID) và `created_at`. Bên gửi không đặt hai trường này. `source`, `title`, `summary` không được rỗng hoặc chỉ có khoảng trắng, và `title` không được chứa xuống dòng. Mọi quy tắc nằm trong hàm `envelope::parse` (mục 4.2), dùng chung cho Worker và CLI.
 
 ### 3.2 Các loại `body`
 
@@ -108,6 +108,8 @@ Server sinh `id` và `created_at`. Bên gửi không đặt hai trường này.
 }
 ```
 
+Bắt buộc: `word` (không rỗng), `ipa`, `pos`, `meanings` (ít nhất một nghĩa, mỗi nghĩa có `definition` không rỗng). Tuỳ chọn: `audio_url`, `context`, `examples` trong mỗi nghĩa, `synonyms`, `antonyms`.
+
 **`generic`**: `{ "blocks": [ … ] }`, mỗi block có trường `type`.
 
 | Block | Trường | Tương ứng Adaptive Cards |
@@ -122,6 +124,8 @@ Server sinh `id` và `created_at`. Bên gửi không đặt hai trường này.
 
 Tập block được giữ nhỏ có chủ ý để client Windows sau này ánh xạ được sang Adaptive Cards.
 
+Quy tắc URL: `url` của envelope và `url` của block `link` phải bắt đầu bằng `http://` hoặc `https://`; `url` của block `image` và `audio_url` của `vocab` phải bắt đầu bằng `https://`, vì ảnh và âm thanh được tải tự động.
+
 ### 3.3 Quy tắc tiến hoá
 
 - Client gặp `kind` lạ thì hiển thị `title` và `summary`. Client gặp block lạ thì bỏ qua block đó.
@@ -134,21 +138,27 @@ Tập block được giữ nhỏ có chủ ý để client Windows sau này ánh
 
 | Endpoint | Token | Vai trò |
 |---|---|---|
-| `POST /items` | publish | Validate envelope, lưu mục. Trả về `id`. Cùng `dedupe_key` trả về mục đã có. |
-| `GET /items` | client | Ảnh chụp các mục còn hiệu lực kèm `seq` mới nhất. Dùng cho lần đồng bộ đầu và để đối chiếu định kỳ. |
-| `GET /events?since=<seq>` | client | Các sự kiện có `seq` lớn hơn cursor, theo thứ tự. Sự kiện tạo mục kèm toàn bộ mục. |
-| `PATCH /items/{id}` | client | Đặt hoặc bỏ trạng thái đã đọc. |
-| `DELETE /items/{id}` | client | Xoá mục. |
+| `POST /items` | publish | Validate envelope, lưu mục. Trả về `{"id": "..."}`: 201 khi tạo mục mới; 200 với `id` của mục đã có khi cùng `dedupe_key` đã được lưu (kể cả khi mục đó đã bị xoá, hoặc đã hết hạn nhưng chưa bị job dọn dẹp hằng ngày lúc 03:17 UTC xoá hẳn), và không sinh sự kiện mới. Vì vậy một khoá cố định đi với `ttl` ngắn có thể nhận 200 mà không có mục nào hiện ra cho tới lần dọn tiếp theo. |
+| `GET /items` | client | `{"seq": <n>, "items": [...]}`: các mục chưa xoá và chưa hết hạn, mới nhất trước, cùng `seq` mới nhất đọc trước danh sách. Dùng cho lần đồng bộ đầu và để đối chiếu định kỳ. |
+| `GET /events?since=<seq>&limit=<n>` | client | Các sự kiện có `seq` lớn hơn `since`, theo thứ tự tăng dần. `since` bắt buộc, số nguyên ≥ 0. `limit` mặc định 100, giá trị lớn hơn bị hạ về 100, giá trị nhỏ hơn 1 hoặc không phải số nguyên trả 400. Client gọi tiếp với `seq` cuối cùng khi nhận đủ một trang. Sự kiện `item.created` kèm toàn bộ mục trong trường `item`. |
+| `PATCH /items/{id}` | client | Body `{"read": true}` hoặc `{"read": false}`; body khác trả 400. 204 khi mục ở đúng trạng thái yêu cầu (gửi lại không sinh sự kiện mới); 404 khi mục không tồn tại hoặc đã bị xoá. |
+| `DELETE /items/{id}` | client | Xoá mềm. 204 khi mục tồn tại, dù vừa xoá hay đã xoá trước đó (xoá lại không sinh sự kiện); 404 khi không có mục đó. |
 
-Token đặt trong header `Authorization: Bearer`. Có hai token tách riêng, lưu dưới dạng secret của Worker: một cho bên gửi, một cho client. Lộ token publish không cho phép đọc nội dung.
+Token đặt trong header `Authorization: Bearer`. Có hai token tách riêng, lưu dưới dạng secret `PUBLISH_TOKEN` và `CLIENT_TOKEN` của Worker: token publish chỉ gọi được `POST /items`, token client gọi được mọi endpoint còn lại. Thiếu header hoặc token không khớp token nào trả 401; đúng một token nhưng sai loại cho endpoint trả 403. Token được kiểm trước khi định tuyến, nên người không có token không dò được đường dẫn nào tồn tại. Lộ token publish không cho phép đọc nội dung.
+
+Lỗi trả JSON `{"error": "<mã>"}`. Envelope sai trả 400 với `{"error": "invalid envelope", "field": "<đường dẫn>", "message": "<lý do>"}`, ví dụ `field` là `body.meanings[0]` khi nghĩa đầu tiên thiếu `definition`; `field` rỗng khi lỗi nằm ở gốc envelope, chẳng hạn thiếu `title`, và khi đó `message` nêu tên trường. `id` không phải UUID trả 404 mà không chạm tới Supabase. Supabase lỗi trả 502.
+
+Client coi 404 của `PATCH` và `DELETE` là thao tác đã xong: mục đã bị xoá ở nơi khác hoặc đã bị dọn hẳn, nên hàng đợi gửi đi bỏ thao tác đó.
 
 ### 4.2 Bố cục mã Rust
 
 Một Cargo workspace gồm ba crate:
 
-- `envelope`: các kiểu dữ liệu của envelope, trong đó `body` là enum gắn thẻ theo `kind`. Đây là nguồn chân lý duy nhất của định dạng; deserialize thành công nghĩa là hợp lệ.
+- `envelope`: các kiểu dữ liệu của envelope, trong đó `body` là enum gắn thẻ theo `kind`. Đây là nguồn chân lý duy nhất của định dạng; một envelope hợp lệ khi `envelope::parse` chấp nhận nó (xem bên dưới).
 - `worker`: các handler HTTP, dùng `workers-rs`, gọi Supabase qua REST.
-- `cli`: lệnh publish cho agent và cron, dùng lại crate `envelope` để validate trước khi gửi.
+- `cli`: binary `os-widget` cho agent và cron. Lệnh `os-widget publish` dựng envelope `notification` từ cờ (`--source`, `--title`, `--summary`, `--text`, `--link`, `--priority`, `--ttl`, `--dedupe-key`) hoặc đọc envelope đầy đủ từ `--file` (hoặc stdin với `-`), validate bằng `envelope::parse` trước khi gửi, rồi in `id`. URL server lấy từ `OS_WIDGET_SERVER` hoặc `--server`; token chỉ lấy từ `OS_WIDGET_PUBLISH_TOKEN`, không nhận qua cờ. Mã thoát 2 khi envelope sai, 1 với mọi lỗi khác.
+
+Crate `envelope` có hàm `envelope::parse`, nhận byte JSON và trả envelope hoặc lỗi kèm `field` và `message`. Worker và CLI cùng gọi hàm này, nên hai bên áp đúng một bộ quy tắc.
 
 Worker gọi Supabase bằng REST (PostgREST) với khoá service role lưu dưới dạng secret. Đây là đường ít rủi ro nhất từ Wasm; giai đoạn 0 đã chạy được đường này bằng `worker::Fetch`. Kết nối Postgres trực tiếp qua Hyperdrive là phương án thay thế nếu REST không đáp ứng; chưa kiểm chứng với `workers-rs`.
 
@@ -180,8 +190,10 @@ create table events (
 ```
 
 - Một trigger trên `items` ghi một dòng vào `events` cho mỗi lần thêm, đổi `read_at` hoặc đặt `deleted_at`. Sự kiện và dữ liệu nằm trong cùng transaction, nên nhật ký không lệch khỏi dữ liệu.
-- Xoá là xoá mềm (`deleted_at`). Một tác vụ định kỳ xoá hẳn các mục đã xoá hoặc hết hạn và các sự kiện cũ. Client tự ẩn mục hết hạn theo `expires_at`, nên hết hạn không cần sự kiện.
-- Bảng `events` nằm trong publication của Supabase Realtime. Bảng này chỉ chứa `seq`, `type`, `item_id`, không chứa nội dung, nên khoá anon nhúng trong app chỉ được cấp quyền đọc riêng bảng này qua RLS. Bảng `items` không cấp quyền nào cho khoá anon.
+- Xoá là xoá mềm (`deleted_at`). Client tự ẩn mục hết hạn theo `expires_at`, nên hết hạn không cần sự kiện.
+- Hàm `purge_old_rows()` chạy mỗi ngày lúc 03:17 UTC bằng `pg_cron` ngay trong Supabase, không tốn CPU của Worker và không dùng Cron Trigger. Hàm xoá hẳn mục đã hết hạn, mục đã xoá mềm quá 30 ngày và sự kiện cũ hơn 30 ngày. Thời gian giữ 30 ngày bằng nhau cho mục đã xoá và sự kiện, nên client bắt kịp trong vòng 30 ngày vẫn thấy `item.deleted` trước khi mục biến mất; thời gian giữ độc lập với `ttl`. Không role nào ngoài chủ hàm và tác vụ cron được gọi hàm này, nên khoá anon không gọi được `rpc/purge_old_rows`.
+- `item.created` của một mục đã bị dọn hẳn vẫn còn trong nhật ký tới khi chính sự kiện đó bị dọn; khi đó `GET /events` trả `"item": null` và client bỏ qua sự kiện.
+- Bảng `events` nằm trong publication của Supabase Realtime. Bảng này chỉ chứa `seq`, `type`, `item_id`, không chứa nội dung, nên khoá anon nhúng trong app chỉ được đọc riêng bảng này. Quyền đóng ở hai lớp: quyền bảng (bỏ mọi quyền mặc định của `anon` và `authenticated`, chỉ cấp lại `select` trên `events` cho `anon`) và RLS (một chính sách cho `anon` đọc `events`). Một chính sách thiếu hay sai vì vậy không tự làm lộ dữ liệu. Bảng `items` không cấp quyền nào cho khoá anon; chỉ khoá service role của Worker đọc và ghi bảng này. Project đã tắt khoá anon kiểu JWT cũ; app dùng khoá publishable (`sb_publishable_...`).
 
 ### 4.4 Bộ từ vựng
 
@@ -245,6 +257,7 @@ sequenceDiagram
 - **Khi nào fetch.** Khi nhận tín hiệu Realtime, khi Realtime kết nối lại, khi máy thức dậy, khi mạng trở lại, và theo chu kỳ poll dự phòng. Supabase không phát lại sự kiện Realtime bị lỡ, nên tín hiệu chỉ là gợi ý; nguồn chân lý là `GET /events`.
 - **Áp dụng sự kiện là idempotent.** Áp dụng lại một sự kiện không đổi kết quả. Client vì vậy có thể fetch chồng lấn mà không sinh mục trùng.
 - **Khe hở thứ tự.** Hai transaction ghi đồng thời có thể commit không theo thứ tự `seq`, khiến client bỏ sót một sự kiện. Lưu lượng ghi của hệ thống này rất thấp nên hiếm gặp; để chắc chắn, client fetch lùi cursor một khoảng nhỏ và đối chiếu định kỳ với `GET /items`.
+- **Máy ngoại tuyến lâu.** Sự kiện chỉ được giữ 30 ngày (mục 4.3). Máy ngoại tuyến lâu hơn sẽ thiếu sự kiện ở đầu nhật ký, nên phải dựa vào đối chiếu với `GET /items` để bỏ các mục đã bị xoá hoặc đã bị dọn, rồi tiếp tục từ `seq` mà `GET /items` trả về.
 - **Thao tác của người dùng.** Đã đọc và xoá được áp dụng ngay vào kho cục bộ, đồng thời đưa vào một hàng đợi gửi đi. Hàng đợi được gửi lại cho tới khi thành công. Cả hai thao tác đều idempotent; xoá thắng đã đọc.
 
 ## 6. Client macOS
@@ -290,7 +303,7 @@ Nội dung do bên gửi cung cấp được coi là dữ liệu: markdown khôn
 |---|---|---|
 | Worker, request | 100.000 mỗi ngày | Vài trăm mỗi ngày |
 | Worker, CPU | 10 ms mỗi request | Đo trên Worker Rust đã deploy (hai lần, 140–147 request mỗi endpoint): `POST /items` p50 2 ms, p99 11 ms; `GET /events` (5 sự kiện mỗi lần) p50 3 ms, p99 7 ms. Request trúng isolate mới tốn 16–21 ms nhưng không bị chặn. Thời gian chờ Supabase không tính. |
-| Worker, dung lượng | 64 MiB chưa nén (không còn hạn mức sau nén) | 563.08 KiB chưa nén, 191.37 KiB sau gzip. |
+| Worker, dung lượng | 64 MiB chưa nén (không còn hạn mức sau nén) | 656.64 KiB chưa nén, 216.96 KiB sau gzip (bản Giai đoạn 1; bản Giai đoạn 0 là 563.08 KiB và 191.37 KiB). |
 | Supabase Realtime, message | 2 triệu mỗi tháng | Khoảng 6.000 mỗi tháng |
 | Supabase Realtime, kết nối | 200 đồng thời | 2 đến 3 |
 | Supabase, project | Tạm dừng sau khoảng một tuần ít hoạt động | Cron từ vựng mỗi giờ giữ project hoạt động |

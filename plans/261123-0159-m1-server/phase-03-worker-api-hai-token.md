@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Worker năm endpoint, hai token"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [1, 2]
@@ -59,12 +59,12 @@ Client coi 404 của `PATCH` và `DELETE` là đã xong khi gửi lại hàng đ
 
 ## Tasks & Steps
 
-- [ ] Tách `lib.rs` thành các module ở trên; `supabase.rs` giữ hàm gọi PostgREST của M0, thêm tham số header `Prefer`.
-- [ ] `auth.rs`: hai token, bảng quyền, 401/403.
-- [ ] `items.rs`: `POST /items` (lỗi có `field`, chống trùng), `GET /items`, `PATCH /items/{id}`, `DELETE /items/{id}`.
-- [ ] `events.rs`: `GET /events` với `limit`.
-- [ ] Unit test cho các hàm thuần: token đúng loại, sai loại, không khớp, thiếu header; `limit` vắng, 50, 500, 0, `abc`; `since` âm, vắng; body `PATCH` đúng, thiếu `read`, `read` không phải bool; UUID đúng và sai.
-- [ ] Chạy với `npx wrangler dev` trỏ vào project Supabase (secret đặt trong `crates/worker/.dev.vars`, `.gitignore` đã có `.dev.vars`): một vòng publish, đọc sự kiện, đã đọc, bỏ đọc, xoá, publish trùng khoá, publish sai định dạng, token sai loại. Xoá mềm dữ liệu thử sau khi xong.
+- [x] Tách `lib.rs` thành các module ở trên; `supabase.rs` giữ hàm gọi PostgREST của M0, thêm tham số header `Prefer`.
+- [x] `auth.rs`: hai token, bảng quyền, 401/403.
+- [x] `items.rs`: `POST /items` (lỗi có `field`, chống trùng), `GET /items`, `PATCH /items/{id}`, `DELETE /items/{id}`.
+- [x] `events.rs`: `GET /events` với `limit`.
+- [x] Unit test cho các hàm thuần: token đúng loại, sai loại, không khớp, thiếu header; `limit` vắng, 50, 500, 0, `abc`; `since` âm, vắng; body `PATCH` đúng, thiếu `read`, `read` không phải bool; UUID đúng và sai.
+- [x] Chạy với `npx wrangler dev` trỏ vào project Supabase (secret đặt trong `crates/worker/.dev.vars`, `.gitignore` đã có `.dev.vars`): một vòng publish, đọc sự kiện, đã đọc, bỏ đọc, xoá, publish trùng khoá, publish sai định dạng, token sai loại. Xoá mềm dữ liệu thử sau khi xong.
 
 ## Verification
 

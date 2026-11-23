@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Envelope ba loại và lỗi nêu rõ trường"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: []
@@ -50,9 +50,9 @@ Khi serde báo thiếu trường, đường dẫn trỏ tới đối tượng ch
 
 ## Tasks & Steps
 
-- [ ] Thêm các kiểu `VocabBody`, `Meaning`, `GenericBody`, `Block` và hai biến thể của `Body`; cập nhật `Body::kind()`.
-- [ ] Viết `parse` và `EnvelopeError` theo thiết kế; giữ `Deserialize` của `Envelope` để test cũ còn chạy.
-- [ ] Test, mỗi trường hợp một hàm:
+- [x] Thêm các kiểu `VocabBody`, `Meaning`, `GenericBody`, `Block` và hai biến thể của `Body`; cập nhật `Body::kind()`.
+- [x] Viết `parse` và `EnvelopeError` theo thiết kế; giữ `Deserialize` của `Envelope` để test cũ còn chạy.
+- [x] Test, mỗi trường hợp một hàm:
   - `vocab` đúng ví dụ ở §3.2 parse được và round-trip không đổi.
   - `generic` có đủ bảy block parse được và round-trip không đổi.
   - Thiếu `title` → `field` là `""` hoặc gốc, `message` chứa `title`.
@@ -61,7 +61,7 @@ Khi serde báo thiếu trường, đường dẫn trỏ tới đối tượng ch
   - `generic` có block `type: "video"` → `field` bắt đầu bằng `body.blocks[0]`.
   - `v: 2`, `title` có `\n`, `url: "javascript:x"`, `image.url` dạng `http://`, `ttl: 0`, `meanings: []` → mỗi cái một lỗi với đúng `field`.
   - JSON hỏng (`{`) → lỗi, không panic.
-- [ ] Các test M0 hiện có vẫn pass.
+- [x] Các test M0 hiện có vẫn pass.
 
 ## Verification
 

@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "CLI publish"
-status: pending
+status: completed
 priority: P1
 effort: "2h"
 dependencies: [2]
@@ -45,10 +45,10 @@ Crate `cli` với binary `os-widget` có lệnh `publish` cho agent và cron: va
 
 ## Tasks & Steps
 
-- [ ] Tạo crate, thêm vào workspace; `cargo build -p cli` không kéo `worker` vào.
-- [ ] Viết `publish` theo thiết kế; tách hàm thuần "dựng envelope từ cờ" và "đổi phản hồi HTTP thành kết quả" để test.
-- [ ] Unit test: cờ tối thiểu dựng ra envelope hợp lệ; `--priority urgent` bị clap từ chối; `--text` vào `body.text`; phản hồi 201, 200, 400 có `field`, 401 đổi đúng thành mã thoát.
-- [ ] Kiểm thủ công `--dry-run` với một file `vocab` hợp lệ và một file thiếu `definition`.
+- [x] Tạo crate, thêm vào workspace; `cargo build -p cli` không kéo `worker` vào.
+- [x] Viết `publish` theo thiết kế; tách hàm thuần "dựng envelope từ cờ" và "đổi phản hồi HTTP thành kết quả" để test.
+- [x] Unit test: cờ tối thiểu dựng ra envelope hợp lệ; `--priority urgent` bị clap từ chối; `--text` vào `body.text`; phản hồi 201, 200, 400 có `field`, 401 đổi đúng thành mã thoát.
+- [x] Kiểm thủ công `--dry-run` với một file `vocab` hợp lệ và một file thiếu `definition`.
 
 ## Verification
 
@@ -56,6 +56,8 @@ Crate `cli` với binary `os-widget` có lệnh `publish` cho agent và cron: va
 - `cargo clippy -p cli -- -D warnings` sạch.
 - `cargo run -p cli -- publish --dry-run --file <vocab hỏng>` thoát mã 2 và in `body.meanings[0]`.
 - Gọi thật vào Worker (sau Phase 3 deploy hoặc `wrangler dev`) ở Phase 5.
+
+> Ghi chú (2026-11-23): mọi mục ở trên đã đạt khi merge vào `main`. Riêng việc gọi thật vào Worker chưa làm ở phase này; Phase 5 kiểm nó qua tiêu chí 1 của `scripts/acceptance-server.sh`.
 
 ## Risk Assessment
 

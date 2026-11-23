@@ -129,4 +129,4 @@ Một người dùng duy nhất, dùng một MacBook và một Mac mini (macOS 2
 
 1. Đã chốt (2026-11-22): tự xây bộ từ, nạp từ sách hoặc API công khai (FR-24 đến FR-27). Còn mở: dùng API từ điển nào, và sách ở định dạng gì (PDF, EPUB, text).
 2. Đã chốt (2026-11-22): hành vi popup theo FR-6 đến FR-10c. Popup luôn mở cho mục không phải `low`, không dò trạng thái desktop.
-3. Thời gian popup hiển thị là 30 giây (đã chốt). Thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl` đang tạm đặt là 30 ngày và cần xác nhận; nếu đặt 30 giây thì mục sẽ biến mất khỏi widget và danh sách ngay sau khi popup đóng.
+3. Đã chốt: thời gian popup hiển thị là 30 giây. Đã chốt (2026-11-23): thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl` là 7 ngày; mục sống lâu hơn popup nên vẫn còn ở widget và danh sách sau khi popup đóng.

@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Schema, RLS và tác vụ dọn trên Supabase"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: []
@@ -40,15 +40,15 @@ Lên lịch bằng `pg_cron` mỗi ngày một lần: `create extension if not e
 
 ## Tasks & Steps
 
-- [ ] Viết migration theo thiết kế trên, comment giải thích lý do của từng khối (quyền hai lớp, thời gian giữ, revoke execute).
-- [ ] Chạy cục bộ: `supabase start` rồi `supabase db reset` (Docker đã có). Migration áp dụng không lỗi.
-- [ ] Kiểm cục bộ bằng `psql` vào DB local:
+- [x] Viết migration theo thiết kế trên, comment giải thích lý do của từng khối (quyền hai lớp, thời gian giữ, revoke execute).
+- [x] Chạy cục bộ: `supabase start` rồi `supabase db reset` (Docker đã có). Migration áp dụng không lỗi.
+- [x] Kiểm cục bộ bằng `psql` vào DB local:
   - Với vai trò `anon` (`set role anon`): `select * from events` chạy được; `select * from items` lỗi quyền; `select public.purge_old_rows()` lỗi quyền.
   - Với `postgres`: chèn một mục có `expires_at` trong quá khứ, một mục có `deleted_at` cách đây 31 ngày, một mục có `deleted_at` hôm nay, một sự kiện có `created_at` cách đây 31 ngày (sửa `created_at` sau khi trigger ghi); gọi `select public.purge_old_rows()`; chỉ mục xoá hôm nay và các sự kiện mới còn lại.
   - `select jobname, schedule from cron.job` có `os-widget-purge`.
   - `select tablename from pg_publication_tables where pubname = 'supabase_realtime'` có `events`.
-- [ ] Đẩy lên project: `supabase link --project-ref gykrhmpliphrcpiryzuq` rồi `supabase db push`. Lặp lại kiểm tra `cron.job` và publication trên project qua `psql` với chuỗi kết nối của project (không lưu chuỗi này vào repo).
-- [ ] `supabase stop` sau khi kiểm xong cục bộ.
+- [x] Đẩy lên project: `supabase link --project-ref gykrhmpliphrcpiryzuq` rồi `supabase db push`. Lặp lại kiểm tra `cron.job` và publication trên project qua `psql` với chuỗi kết nối của project (không lưu chuỗi này vào repo).
+- [x] `supabase stop` sau khi kiểm xong cục bộ.
 
 ## Verification
 

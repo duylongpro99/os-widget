@@ -1,8 +1,17 @@
 //! Envelope types shared by the Worker and publishers.
 //!
-//! Deserializing into [`Envelope`] is the validation: a payload that parses is valid.
+//! [`parse`] is the validation: it decodes a publish request, names the offending
+//! field when decoding fails, and applies the rules the types cannot express.
 //! The wire format keeps `kind` and `body` as two sibling top-level fields, so `Body`
 //! is adjacently tagged and flattened into the envelope.
+
+mod generic;
+mod parse;
+mod vocab;
+
+pub use generic::{Block, Field, GenericBody};
+pub use parse::{EnvelopeError, parse};
+pub use vocab::{Meaning, VocabBody};
 
 use serde::{Deserialize, Serialize};
 
@@ -46,6 +55,10 @@ pub enum Priority {
 pub enum Body {
     /// `body` may be omitted; the card then shows only `title` and `summary`.
     Notification(#[serde(default)] Option<NotificationBody>),
+    /// One word to learn; `body` is required.
+    Vocab(VocabBody),
+    /// Free-form content built from blocks; `body` is required.
+    Generic(GenericBody),
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,6 +73,8 @@ impl Body {
     pub fn kind(&self) -> &'static str {
         match self {
             Body::Notification(_) => "notification",
+            Body::Vocab(_) => "vocab",
+            Body::Generic(_) => "generic",
         }
     }
 }
