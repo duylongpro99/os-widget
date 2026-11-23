@@ -43,7 +43,7 @@ dependencies: [1]
   - `markRead(id)`, `markUnread(id)` (cho API nội bộ, UI M2 không dùng), `delete(id)` áp ngay vào kho và thêm vào hàng đợi.
   - Gộp: với cùng `itemId`, `delete` thay mọi thao tác trước; `read` mới thay `read` cũ; không thêm `read` sau `delete` (xoá thắng đã đọc, architecture §5).
   - `outcome(for: status)` là hàm thuần quyết định số phận thao tác sau khi gửi: 2xx hoặc 404 thì bỏ (404 nghĩa là mục đã bị xoá hoặc dọn hẳn, architecture §4.1); 400 thì bỏ và ghi log lỗi; 401, 403 thì giữ và báo dừng gửi; 5xx hoặc lỗi mạng thì giữ để thử lại.
-- `popupSettings`: `disabledKinds: Set<String>`, `quietUntil: Date?` (giá trị xa vô hạn cho "đến khi tắt"); lựa chọn thời lượng theo câu trả lời câu hỏi 3. Mặc định mọi loại bật (câu hỏi 5).
+- `popupSettings`: `disabledKinds: Set<String>`, `quietMode: Bool`. Chế độ yên lặng chỉ bật hoặc tắt bằng tay, bật tới khi người dùng tắt, lưu bền qua lần khởi động lại (operator trả lời câu hỏi 3, 2026-11-23). Mặc định mọi loại bật, yên lặng tắt (câu hỏi 5).
 
 ## Files to Create / Modify
 

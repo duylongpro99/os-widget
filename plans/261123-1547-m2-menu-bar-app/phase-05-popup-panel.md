@@ -24,7 +24,7 @@ Khi có mục mới, một panel không kích hoạt duy nhất hiện dưới i
 
 **Chính sách** (`OSWidgetKit/Sources/OSWidgetKit/Popup/PopupPolicy.swift`, hàm thuần):
 
-- Đầu vào: các mục trong thông báo, `popupSettings` (loại bị tắt, `quietUntil`), `isListOpen`, thời điểm hiện tại. Đầu ra: `.none` hoặc `.show(newest: Item, othersCount: Int)`.
+- Đầu vào: các mục trong thông báo, `popupSettings` (loại bị tắt, `quietMode`), `isListOpen`, thời điểm hiện tại. Đầu ra: `.none` hoặc `.show(newest: Item, othersCount: Int)`.
 - Lọc mục: bỏ `priority == "low"` (FR-10); bỏ `kind` nằm trong loại bị tắt (FR-10c); bỏ mục đã đọc hoặc hết hạn.
 - Trả `.none` khi: danh sách đang mở (FR-10b, danh sách tự làm nổi bật ở Phase 4); đang trong chế độ yên lặng; không còn mục nào sau lọc.
 - Khi popup đang hiện mà có thông báo mới: `othersCount` cộng dồn với số mục đang chờ trong popup (FR-8: thay nội dung bằng mục mới nhất, đếm lại 30 giây, hiện số mục còn lại). Logic cộng dồn nằm trong hàm thuần `merge(current:incoming:)` để test được.
@@ -63,7 +63,7 @@ Khi có mục mới, một panel không kích hoạt duy nhất hiện dưới i
 | Ba mục cùng lúc (máy thức dậy) | `.show(mục có created_at mới nhất, 2)` |
 | `priority: low` | Bị lọc; chỉ toàn mục `low` thì `.none` |
 | Loại bị tắt | Mục `kind` đó bị lọc, loại khác vẫn hiện |
-| Chế độ yên lặng | `quietUntil` ở tương lai thì `.none`; ở quá khứ thì hiện |
+| Chế độ yên lặng | `quietMode` bật thì `.none`; tắt thì hiện |
 | Danh sách đang mở | `.none` |
 | `kind` lạ | Vẫn hiện (thẻ dự phòng) |
 | Gộp khi đang hiện | Popup đang hiện mục A với `others = 1`, thông báo mới gồm B: hiện B với `others = 2` |

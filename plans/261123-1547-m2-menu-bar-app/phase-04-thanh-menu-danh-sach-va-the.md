@@ -26,7 +26,7 @@ Icon thanh menu có dấu báo chưa đọc, bấm mở danh sách mục mới n
 **Status item** (`App/MenuBar/MenuBarController.swift`, chữ ký từ Phase 1):
 
 - `NSStatusItem` với SF Symbol (ví dụ `tray`), thêm chấm báo khi `store.unreadCount > 0` (đổi sang biến thể `tray.full` hoặc vẽ chấm; chọn một và giữ nhất quán ở chế độ sáng và tối).
-- Bấm trái mở danh sách trong `NSPopover` neo vào nút icon (người dùng chủ động mở nên popover được phép kích hoạt app). Bấm phải mở menu: các nút bật tắt popup theo loại (`notification`, `generic`, `vocab`, cộng mọi `kind` khác đang có trong kho), chế độ yên lặng (lựa chọn theo câu hỏi 3, hiện thời điểm kết thúc khi đang bật), "Mở khi đăng nhập", "Cài đặt…", "Thoát".
+- Bấm trái mở danh sách trong `NSPopover` neo vào nút icon (người dùng chủ động mở nên popover được phép kích hoạt app). Bấm phải mở menu: các nút bật tắt popup theo loại (`notification`, `generic`, `vocab`, cộng mọi `kind` khác đang có trong kho), một công tắc "Chế độ yên lặng" (có dấu tích khi bật; bật tới khi tắt, không có lựa chọn thời hạn), "Mở khi đăng nhập", "Cài đặt…", "Thoát".
 - `anchorRect()` trả khung của nút icon trên màn hình (`button.window.convertToScreen(button.frame)`), `nil` khi không lấy được. `isListOpen` đúng khi popover đang hiện. Đây là hai thứ Phase 5 dùng.
 
 **Danh sách** (`App/MenuBar/ItemListView.swift`):

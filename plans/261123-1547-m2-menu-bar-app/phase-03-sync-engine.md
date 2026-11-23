@@ -19,7 +19,7 @@ App giữ kho cục bộ khớp với server: đồng bộ đầu bằng `GET /i
 - Giao thức: architecture §5. API: architecture §4.1. Realtime: bảng `events` nằm trong publication `supabase_realtime`, khoá anon (publishable) chỉ có `select` trên `events` cùng chính sách RLS `anon can read events` (`supabase/migrations/20261123000000_access_realtime_cleanup.sql`).
 - Supabase không phát lại sự kiện Realtime bị lỡ; tín hiệu chỉ là gợi ý, nguồn chân lý là `GET /events`.
 - Làm song song được với Phase 4 và 5 sau khi Phase 2 xong; chỉ sửa file trong bảng sở hữu của plan.md.
-- Thư viện Realtime theo câu trả lời câu hỏi 2. Đề xuất: `supabase-swift`, chỉ sản phẩm `Realtime`, ghim phiên bản chính xác trong `Package.swift`.
+- Client Realtime tự viết theo giao thức Phoenix của Supabase trên `URLSessionWebSocketTask`, không dùng `supabase-swift` (operator trả lời câu hỏi 2, 2026-11-23). Package không có phụ thuộc ngoài.
 
 ## Requirements
 
@@ -42,8 +42,12 @@ App giữ kho cục bộ khớp với server: đồng bộ đầu bằng `GET /i
 
 **Realtime** (`Sync/RealtimeSignal.swift`):
 
-- Một kết nối duy nhất (NFR-5), kênh `postgres_changes` sự kiện `INSERT` trên `public.events`, dùng URL Supabase và khoá publishable từ `AppConfig`. Nội dung payload bị bỏ qua; chỉ dùng như tín hiệu.
-- Kết nối lại khi rớt, lùi dần tới tối đa 60 giây; mỗi lần vào trạng thái đã đăng ký thì kích hoạt `sync()`.
+- Toàn bộ client nằm trong một file. Ba phần:
+  - **Message (hàm thuần):** `PhoenixMessage` gồm `topic`, `event`, `payload`, `ref`, `join_ref`, mã hoá và giải mã JSON. Dựng sẵn: `join` (topic `realtime:os-widget-events`, payload `{"config": {"postgres_changes": [{"event": "INSERT", "schema": "public", "table": "events"}]}}`), `heartbeat` (topic `phoenix`, event `heartbeat`, payload rỗng). Phân loại message nhận: `phx_reply` của join với `status: ok` là đã đăng ký; `phx_reply` của heartbeat; `postgres_changes` là tín hiệu; `phx_error`, `phx_close`, hoặc reply `status: error` là lỗi kênh; loại khác (ví dụ `system`, `presence_state`) bỏ qua.
+  - **Trạng thái kết nối lại (hàm thuần):** `ReconnectPolicy` trả độ trễ lần thử thứ n: 1, 2, 4, 8 … tối đa 60 giây; đặt lại về 1 sau khi join thành công. Quyết định kết nối lại khi: socket đóng hoặc lỗi; join bị từ chối; heartbeat gửi đi mà không có reply trước heartbeat kế tiếp.
+  - **Socket:** URL `wss://<host Supabase>/realtime/v1/websocket?apikey=<khoá publishable>&vsn=1.0.0`, mở bằng `URLSessionWebSocketTask` sau giao thức nhỏ `WebSocketConnection` (`send`, `receive`, `close`) để test thay bằng bản giả. Sau khi mở thì gửi `join`; heartbeat mỗi 25 giây; `ref` tăng dần.
+- Một kết nối duy nhất (NFR-5). Nội dung payload `postgres_changes` bị bỏ qua; chỉ dùng như tín hiệu.
+- Mỗi lần join thành công thì kích hoạt `sync()` (bắt kịp những gì đã lỡ khi đang rớt); mỗi `postgres_changes` thì kích hoạt `sync()`.
 - Đóng kết nối khi máy sắp ngủ (`willSleepNotification`), mở lại khi thức.
 - Giao thức `ChangeSignal` (một `AsyncStream<Void>`) để engine test được không cần mạng.
 
@@ -57,13 +61,14 @@ App giữ kho cục bộ khớp với server: đồng bộ đầu bằng `GET /i
 
 - Create: `OSWidgetKit/Sources/OSWidgetKit/Sync/APIClient.swift`, `OSWidgetKit/Sources/OSWidgetKit/Sync/HTTPTransport.swift`, `OSWidgetKit/Sources/OSWidgetKit/Sync/SyncEngine.swift`, `OSWidgetKit/Sources/OSWidgetKit/Sync/RealtimeSignal.swift`, `OSWidgetKit/Sources/OSWidgetKit/Sync/Triggers.swift` (wake, sleep, mạng, poll)
 - Create: `OSWidgetKit/Tests/OSWidgetKitTests/SyncEngineTests.swift`, `OSWidgetKit/Tests/OSWidgetKitTests/APIClientTests.swift`
-- Modify: `OSWidgetKit/Package.swift` (thêm phụ thuộc Realtime, ghim phiên bản), `App/SyncWiring.swift`
+- Create: `OSWidgetKit/Tests/OSWidgetKitTests/RealtimeSignalTests.swift`
+- Modify: `App/SyncWiring.swift`
 
 ## Tasks & Steps
 
 - [ ] `HTTPTransport` và `APIClient`, test với transport giả: header đúng, đường dẫn và query đúng, giải mã fixture của Phase 2.
 - [ ] `SyncEngine` với transport và tín hiệu giả; viết test trước cho từng tình huống trong bảng.
-- [ ] `RealtimeSignal` với thư viện đã chọn; thử bằng tay với Supabase thật: publish một mục bằng `os-widget publish`, thấy log `realtime.state` và một vòng `sync.applied`.
+- [ ] `RealtimeSignal` tự viết, test trước bằng `WebSocketConnection` giả (bảng `RealtimeSignalTests` dưới); sau đó thử bằng tay với Supabase thật: publish một mục bằng `os-widget publish`, thấy log `realtime.state joined` và một vòng `sync.applied`.
 - [ ] `Triggers` cho wake, sleep, mạng, poll.
 - [ ] `SyncWiring`.
 
@@ -78,6 +83,15 @@ App giữ kho cục bộ khớp với server: đồng bộ đầu bằng `GET /i
 | Đối chiếu | `lastFullSyncAt` cũ hơn 6 giờ thì gọi `GET /items` sau fetch sự kiện; mục bị xoá trên server biến khỏi kho |
 | Đã đọc từ máy khác (§10.3) | `item.read` cho mục đang có làm mục thành đã đọc, `unreadCount` giảm |
 
+| Test (`RealtimeSignalTests`) | Kiểm |
+|---|---|
+| Mã hoá join | JSON có `topic` `realtime:os-widget-events`, `event` `phx_join`, cấu hình `postgres_changes` `INSERT` trên `public.events`, `ref` và `join_ref` |
+| Mã hoá heartbeat | Topic `phoenix`, event `heartbeat`, payload rỗng, `ref` tăng |
+| Giải mã | `phx_reply` ok của join là đã đăng ký; `postgres_changes` là tín hiệu; `phx_error`, `phx_close`, reply `status: error` là lỗi kênh; `system` và message lạ bị bỏ qua; JSON hỏng bị bỏ qua, không làm sập |
+| Lùi dần | Độ trễ 1, 2, 4, 8, 16, 32, 60, 60; join thành công thì về 1 |
+| Kết nối lại | Socket giả đóng thì mở lại sau độ trễ; heartbeat không có reply trước nhịp kế tiếp thì đóng và mở lại; join bị từ chối thì mở lại |
+| Phát tín hiệu | Join thành công phát một tín hiệu; mỗi `postgres_changes` phát một tín hiệu; heartbeat reply không phát |
+
 ## Verification
 
 - `cd apps/macos/OSWidgetKit && swift test` pass.
@@ -88,10 +102,10 @@ App giữ kho cục bộ khớp với server: đồng bộ đầu bằng `GET /i
 ## Risk Assessment
 
 - Realtime `postgres_changes` cần RLS cho phép `anon` đọc `events`; migration đã có chính sách này. Nếu không nhận được `INSERT`, kiểm publication bằng truy vấn trong migration (chỉ đọc) và dừng hỏi; không sửa schema trong M2.
-- Thư viện Realtime đổi API giữa các bản: ghim phiên bản chính xác; mọi chỗ gọi thư viện nằm trong `RealtimeSignal.swift`, nên đổi sang WebSocket tự viết chỉ chạm một file.
+- Giao thức Realtime của Supabase thay đổi (ví dụ phiên bản `vsn` mới hoặc khoá publishable cần `access_token` trong payload join): mọi chi tiết giao thức nằm trong `RealtimeSignal.swift`. Kiểm bằng tay với Supabase thật ở bước trên; nếu join bị từ chối, ghi nguyên văn reply và thử thêm `access_token` bằng khoá publishable trước khi dừng hỏi. Mất Realtime không làm mất dữ liệu: poll 5 phút vẫn bắt kịp, chỉ trượt NFR-1.
 - Đồng hồ máy lệch không ảnh hưởng đồng bộ vì cursor là `seq` của server; chỉ ảnh hưởng hết hạn mục (so `expires_at` với giờ máy), chấp nhận.
-- Poll 5 phút trên hai máy là khoảng 576 request mỗi ngày cộng request theo tín hiệu, xa dưới 100.000 (NFR-3).
+- Poll 5 phút là khoảng 288 request mỗi ngày mỗi máy (576 khi Giai đoạn 5 thêm Mac mini) cộng request theo tín hiệu, xa dưới 100.000 (NFR-3).
 
 ## Rollback
 
-Bỏ phụ thuộc Realtime khỏi `Package.swift`, xoá `Sync/` và test của phase, trả `SyncWiring.swift` về khung rỗng của Phase 1. Kho và hàng đợi của Phase 2 không đổi.
+Xoá `Sync/` và test của phase, trả `SyncWiring.swift` về khung rỗng của Phase 1. Kho và hàng đợi của Phase 2 không đổi.
