@@ -34,10 +34,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         environment = env
     }
 
+    /// True when an older instance is running. Comparing launch order means two instances started at
+    /// the same moment do not both quit: only the newer one does.
     private static func anotherInstanceIsRunning() -> Bool {
         guard let bundleID = Bundle.main.bundleIdentifier else { return false }
-        let current = ProcessInfo.processInfo.processIdentifier
-        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-            .contains { $0.processIdentifier != current }
+        let current = NSRunningApplication.current
+        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).contains { other in
+            other.processIdentifier != current.processIdentifier && !other.isTerminated
+                && launchedEarlier(other, than: current)
+        }
+    }
+
+    private static func launchedEarlier(_ other: NSRunningApplication, than current: NSRunningApplication) -> Bool {
+        if let otherDate = other.launchDate, let currentDate = current.launchDate, otherDate != currentDate {
+            return otherDate < currentDate
+        }
+        return other.processIdentifier < current.processIdentifier
     }
 }
