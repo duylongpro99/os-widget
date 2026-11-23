@@ -25,31 +25,21 @@ private final class SyncRuntime {
     static let longSleep: TimeInterval = 24 * 60 * 60
 
     private let config: AppConfig
+    private let tokenStore: KeychainTokenStore
     private let engine: SyncEngine
     private let realtime: RealtimeSignal
     private let queueWatcher: QueueWatcher
     private var systemTriggers: SystemTriggers?
     private var listenTask: Task<Void, Never>?
     private var defaultsObserver: NSObjectProtocol?
-    private var settings: Settings
-
-    private struct Settings: Equatable {
-        let workerURL: URL?
-        let supabaseURL: URL?
-        let publishableKey: String?
-
-        init(_ config: AppConfig) {
-            workerURL = config.workerURL
-            supabaseURL = config.supabaseURL
-            publishableKey = config.supabasePublishableKey
-        }
-    }
+    private var settings: SyncSettings
 
     init(env: AppEnvironment) {
         let config = env.config
         let tokenStore = env.tokenStore
         self.config = config
-        settings = Settings(config)
+        self.tokenStore = tokenStore
+        settings = Self.currentSettings(config: config, tokenStore: tokenStore)
 
         let api = APIClient(credentials: {
             guard let workerURL = config.workerURL,
@@ -102,17 +92,35 @@ private final class SyncRuntime {
         engine.trigger()
     }
 
-    /// Reconnects Realtime and syncs when the operator changed a server setting.
+    /// Syncs when the operator changed a server setting, reconnecting Realtime first when its URL or key
+    /// changed. Saving the settings always writes `UserDefaults`, so a change of the token alone (kept in
+    /// the Keychain, which posts no notification) is seen here too.
     private func settingsMayHaveChanged() {
-        let current = Settings(config)
-        guard current != settings else { return }
+        let current = Self.currentSettings(config: config, tokenStore: tokenStore)
+        let change = settings.change(to: current)
         settings = current
         let engine = engine
         let realtime = realtime
-        Task {
-            await realtime.stop()
-            await realtime.start()
-            await engine.sync()
+        switch change {
+        case .none:
+            return
+        case .sync:
+            engine.trigger()
+        case .reconnectAndSync:
+            Task {
+                await realtime.stop()
+                await realtime.start()
+                await engine.sync()
+            }
         }
+    }
+
+    private static func currentSettings(config: AppConfig, tokenStore: KeychainTokenStore) -> SyncSettings {
+        SyncSettings(
+            workerURL: config.workerURL,
+            clientToken: try? tokenStore.read(),
+            supabaseURL: config.supabaseURL,
+            publishableKey: config.supabasePublishableKey
+        )
     }
 }
