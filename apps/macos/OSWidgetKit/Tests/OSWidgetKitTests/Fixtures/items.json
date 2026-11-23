@@ -1,0 +1,201 @@
+{
+  "seq": 392,
+  "items": [
+    {
+      "kind": "weather",
+      "source": "weather-cron",
+      "priority": "normal",
+      "url": null,
+      "body": {
+        "temp_c": 18,
+        "condition": "cloudy"
+      },
+      "dedupe_key": null,
+      "expires_at": "2026-11-30T09:00:00.654321+00:00",
+      "read_at": null,
+      "deleted_at": null,
+      "id": "0b8e2f61-3c4d-4e5f-8a9b-1c2d3e4f5a60",
+      "title": "Hà Nội 18°C",
+      "summary": "Trời nhiều mây, chiều có mưa nhỏ",
+      "created_at": "2026-11-23T09:00:05.500001+00:00"
+    },
+    {
+      "kind": "vocab",
+      "source": "vocab-cron",
+      "priority": "low",
+      "url": null,
+      "body": {
+        "word": "serendipity",
+        "ipa": "/ˌser.ənˈdɪp.ə.ti/",
+        "pos": "noun",
+        "audio_url": null,
+        "meanings": [
+          {
+            "definition": "the fact of finding good things by chance",
+            "examples": [
+              "pure serendipity"
+            ]
+          }
+        ],
+        "synonyms": [
+          "chance"
+        ],
+        "antonyms": []
+      },
+      "dedupe_key": "vocab-2026-11-23T09",
+      "expires_at": "2026-11-24T09:00:04.400002+00:00",
+      "read_at": null,
+      "deleted_at": null,
+      "id": "1c9f3a72-4d5e-4f60-9bac-2d3e4f5a6b71",
+      "title": "serendipity",
+      "summary": "(n.) sự tình cờ may mắn",
+      "created_at": "2026-11-23T09:00:04.400002+00:00"
+    },
+    {
+      "kind": "generic",
+      "source": "deploy-bot",
+      "priority": "high",
+      "url": "https://example.com/deploys/42",
+      "body": {
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "api v1.4.2"
+          },
+          {
+            "type": "text",
+            "markdown": "Đã deploy **thành công**."
+          },
+          {
+            "type": "fields",
+            "items": [
+              {
+                "label": "Thời gian",
+                "value": "42s"
+              },
+              {
+                "label": "Commit",
+                "value": "abc1234"
+              }
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "migrate",
+              "restart"
+            ],
+            "ordered": true
+          },
+          {
+            "type": "list",
+            "items": [
+              "no order flag"
+            ]
+          },
+          {
+            "type": "image",
+            "url": "https://example.com/chart.png",
+            "alt": "biểu đồ"
+          },
+          {
+            "type": "code",
+            "text": "cargo test",
+            "language": "sh"
+          },
+          {
+            "type": "link",
+            "label": "Xem log",
+            "url": "https://example.com/logs/42"
+          },
+          {
+            "type": "chart",
+            "series": [
+              1,
+              2,
+              3
+            ]
+          },
+          {
+            "type": "heading"
+          },
+          {
+            "type": "text",
+            "markdown": "Kết thúc."
+          }
+        ]
+      },
+      "dedupe_key": null,
+      "expires_at": "2026-11-30T09:00:00.654321+00:00",
+      "read_at": null,
+      "deleted_at": null,
+      "id": "2da04b83-5e6f-4071-8cbd-3e4f5a6b7c82",
+      "title": "Deploy xong",
+      "summary": "api v1.4.2 đã lên production",
+      "created_at": "2026-11-23T09:00:03.300003+00:00"
+    },
+    {
+      "kind": "notification",
+      "source": "fixture",
+      "priority": "normal",
+      "url": null,
+      "body": {
+        "text": "Họp lúc **15:00**"
+      },
+      "dedupe_key": null,
+      "expires_at": "2026-11-30T09:00:00.654321+00:00",
+      "read_at": "2026-11-23T09:00:10.1+00:00",
+      "deleted_at": null,
+      "id": "3eb15c94-6f70-4182-9dce-4f5a6b7c8d93",
+      "title": "Có tin nhắn mới",
+      "summary": "Từ nhóm dự án",
+      "created_at": "2026-11-23T09:00:02.200004+00:00"
+    },
+    {
+      "kind": "notification",
+      "source": "fixture",
+      "priority": "normal",
+      "url": null,
+      "body": {
+        "text": 42
+      },
+      "dedupe_key": null,
+      "expires_at": "2026-11-30T09:00:00.654321+00:00",
+      "read_at": null,
+      "deleted_at": null,
+      "id": "4fc26da5-7081-4293-aedf-5a6b7c8d9ea4",
+      "title": "Body hỏng",
+      "summary": "body không đúng dạng của loại",
+      "created_at": "2026-11-23T09:00:01.100005+00:00"
+    },
+    {
+      "kind": "notification",
+      "source": "fixture",
+      "priority": "normal",
+      "url": null,
+      "body": null,
+      "dedupe_key": null,
+      "expires_at": "2026-11-30T09:00:00.654321+00:00",
+      "read_at": null,
+      "deleted_at": null,
+      "id": "50d37eb6-8192-43a4-bfe0-6b7c8d9eafb5",
+      "title": "Thiếu summary",
+      "created_at": "2026-11-23T09:00:00.000006+00:00"
+    },
+    {
+      "body": null,
+      "created_at": "2026-11-23T08:50:33.342978+00:00",
+      "dedupe_key": null,
+      "deleted_at": null,
+      "expires_at": "2026-11-30T08:50:33.31+00:00",
+      "id": "e5248f19-9703-4302-b9b8-970d52c841e9",
+      "kind": "notification",
+      "priority": "normal",
+      "read_at": null,
+      "source": "acceptance",
+      "summary": "run acceptance-20261123T155019-75543",
+      "title": "default ttl acceptance-20261123T155019-75543",
+      "url": null
+    }
+  ]
+}
