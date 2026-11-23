@@ -27,8 +27,20 @@ final class PopupPanel: NSPanel {
         contentView = hostingView
     }
 
+    /// Called instead of closing when the user clicks the title bar's close button, so the owner can
+    /// hide the panel and stop its timer itself.
+    var onCloseRequest: (() -> Void)?
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    override func close() {
+        if let onCloseRequest {
+            onCloseRequest()
+        } else {
+            super.close()
+        }
+    }
 
     /// Replaces the content and resizes the panel to fit it at the fixed width.
     func setContent(_ view: AnyView) {
@@ -39,18 +51,18 @@ final class PopupPanel: NSPanel {
 
     /// Puts the top edge of the panel just under `anchor`, centred on it and kept inside the visible
     /// frame of the screen that holds it. Without an anchor the panel goes to the top right corner of
-    /// the main screen.
+    /// the primary screen.
     func place(under anchor: NSRect?) {
         let size = frame.size
         let margin: CGFloat = 8
         if let anchor,
-           let screen = NSScreen.screens.first(where: { $0.frame.intersects(anchor) }) ?? NSScreen.main {
+           let screen = NSScreen.screens.first(where: { $0.frame.intersects(anchor) }) ?? NSScreen.screens.first {
             let visible = screen.visibleFrame
             var origin = NSPoint(x: anchor.midX - size.width / 2, y: anchor.minY - margin - size.height)
             origin.x = min(max(origin.x, visible.minX + margin), visible.maxX - margin - size.width)
             origin.y = min(max(origin.y, visible.minY + margin), visible.maxY - size.height)
             setFrameOrigin(origin)
-        } else if let visible = NSScreen.main?.visibleFrame {
+        } else if let visible = NSScreen.screens.first?.visibleFrame {
             setFrameOrigin(NSPoint(x: visible.maxX - margin - size.width, y: visible.maxY - margin - size.height))
         }
     }

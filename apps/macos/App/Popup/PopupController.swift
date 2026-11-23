@@ -18,7 +18,11 @@ final class PopupController {
     private let isListOpen: () -> Bool
     private let log = Logger(subsystem: "local.oswidget.app", category: "popup")
 
-    private lazy var panel = PopupPanel { [weak self] inside in self?.pointerInside(inside) }
+    private lazy var panel: PopupPanel = {
+        let panel = PopupPanel { [weak self] inside in self?.pointerInside(inside) }
+        panel.onCloseRequest = { [weak self] in self?.close(reason: "button") }
+        return panel
+    }()
     /// What the panel shows, or `nil` when it is closed.
     private var showing: PopupDecision?
     private var countdown: PopupCountdown?
@@ -89,6 +93,8 @@ final class PopupController {
             onClose: { [weak self] in self?.close(reason: "button") }
         )))
         panel.place(under: anchor())
+        // Resizing replaces the tracking area without reporting an exit, so read the pointer directly.
+        pointerIsInside = panel.frame.contains(NSEvent.mouseLocation)
         panel.orderFrontRegardless()
         startCountdown(at: now)
         let latency = Int((now.timeIntervalSince(item.createdAt) * 1000).rounded())
@@ -159,9 +165,12 @@ final class PopupController {
         closeTimer?.invalidate()
         closeTimer = nil
         guard let countdown, !countdown.isPaused else { return }
-        closeTimer = Timer.scheduledTimer(withTimeInterval: countdown.remaining(at: now), repeats: false) { [weak self] _ in
+        let timer = Timer(timeInterval: countdown.remaining(at: now), repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.closeTimerFired() }
         }
+        // Common modes keep the countdown running while a menu is open.
+        RunLoop.main.add(timer, forMode: .common)
+        closeTimer = timer
     }
 
     private func closeTimerFired() {
