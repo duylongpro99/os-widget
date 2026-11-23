@@ -194,7 +194,8 @@ public final class ItemStore {
     // MARK: - Queue
 
     private func enqueue(itemId: String, operation: PendingAction.Operation) {
-        guard item(id: itemId) != nil else { return }
+        // A deleted item takes no further actions: delete wins over read, even after the delete was sent.
+        guard let item = item(id: itemId), !item.isDeleted else { return }
         let pending = queue.filter { $0.itemId == itemId }
         switch operation {
         case .delete:

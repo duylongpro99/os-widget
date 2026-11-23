@@ -35,6 +35,20 @@ struct QueueTests {
         #expect(store.item(id: "a")?.isDeleted == true)
     }
 
+    @Test func deletedItemTakesNoActionsAfterTheDeleteWasSent() throws {
+        let store = store()
+        store.delete("a")
+        let sent = try #require(store.queue.first)
+        store.complete(sent, outcome: .done)
+        #expect(store.queue.isEmpty)
+
+        store.markRead("a")
+        store.markUnread("a")
+        store.delete("a")
+        #expect(store.queue.isEmpty)
+        #expect(store.item(id: "a")?.isDeleted == true)
+    }
+
     @Test func readThenUnreadBecomeOneAction() {
         let store = store()
         store.markRead("a")
