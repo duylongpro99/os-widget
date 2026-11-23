@@ -13,15 +13,29 @@ final class SettingsWindowController {
     }
 
     func show() {
-        let window = self.window ?? makeWindow()
-        self.window = window
+        let window: NSWindow
+        if let existing = self.window {
+            window = existing
+            if !window.isVisible {
+                // Reopening starts from the saved values: edits that were never saved, and the last
+                // status message, are dropped with the old model.
+                window.contentViewController = makeContent()
+            }
+        } else {
+            window = makeWindow()
+            self.window = window
+        }
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
 
-    private func makeWindow() -> NSWindow {
+    private func makeContent() -> NSViewController {
         let model = SettingsModel(config: environment.config, tokenStore: environment.tokenStore)
-        let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(model: model)))
+        return NSHostingController(rootView: SettingsView(model: model))
+    }
+
+    private func makeWindow() -> NSWindow {
+        let window = NSWindow(contentViewController: makeContent())
         window.title = "Cài đặt OS Widget"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
