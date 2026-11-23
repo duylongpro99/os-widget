@@ -1,7 +1,7 @@
 ---
 title: "M1: Server"
 description: "Hoàn thành Giai đoạn 1 của roadmap: schema và RLS đầy đủ, envelope ba loại, Worker năm endpoint với hai token, CLI publish và tác vụ dọn dữ liệu, kiểm chứng trên bản deploy."
-status: pending
+status: completed
 priority: P1
 effort: 14h
 branch: main
@@ -36,11 +36,11 @@ Thêm: `GET /events` có `limit` (mặc định 100, tối đa 100); tác vụ d
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Schema, RLS và tác vụ dọn trên Supabase](./phase-01-schema-supabase.md) | Pending |
-| 2 | [Envelope ba loại và lỗi nêu rõ trường](./phase-02-envelope-ba-loai.md) | Pending |
-| 3 | [Worker năm endpoint, hai token](./phase-03-worker-api-hai-token.md) | Pending |
-| 4 | [CLI publish](./phase-04-cli-publish.md) | Pending |
-| 5 | [Deploy, nghiệm thu và cập nhật tài liệu](./phase-05-deploy-va-nghiem-thu.md) | Pending |
+| 1 | [Schema, RLS và tác vụ dọn trên Supabase](./phase-01-schema-supabase.md) | Completed |
+| 2 | [Envelope ba loại và lỗi nêu rõ trường](./phase-02-envelope-ba-loai.md) | Completed |
+| 3 | [Worker năm endpoint, hai token](./phase-03-worker-api-hai-token.md) | Completed |
+| 4 | [CLI publish](./phase-04-cli-publish.md) | Completed |
+| 5 | [Deploy, nghiệm thu và cập nhật tài liệu](./phase-05-deploy-va-nghiem-thu.md) | Completed |
 
 Thứ tự: Phase 1 và 2 độc lập, làm song song được. Phase 3 cần cả 1 và 2. Phase 4 cần 2 (kiểm thật với server cần 3). Phase 5 cần tất cả.
 

@@ -1,207 +1,175 @@
 //! HTTP API of os-widget: stores published envelopes in Supabase through PostgREST
-//! and serves the ordered event log.
+//! and serves items and the ordered event log.
+//!
+//! Every response body is JSON; errors are `{"error": "<code>"}`.
 
-use envelope::Envelope;
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
-use worker::{
-    Env, Fetch, Headers, Method, Request, RequestInit, Response, Result, Router, event, js_sys,
-    wasm_bindgen::JsValue,
-};
+mod auth;
+mod events;
+mod items;
+mod supabase;
 
-/// Lifetime applied when the envelope carries no `ttl`.
-const DEFAULT_TTL_SECS: u64 = 30 * 24 * 60 * 60;
-
-/// Largest timestamp a JS `Date` can represent, in milliseconds since the epoch.
-const MAX_JS_DATE_MS: f64 = 8.64e15;
+use auth::Role;
+use serde::Serialize;
+use serde_json::json;
+use worker::{Env, Error, Method, Request, Response, Result, event};
 
 #[event(fetch)]
 async fn fetch(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
-    if !authorized(&req, &env)? {
+    match handle(req, &env).await {
+        Ok(resp) => Ok(resp),
+        Err(Error::RustError(msg)) if msg == supabase::UPSTREAM_FAILURE => error(502, &msg),
+        Err(e) => {
+            worker::console_error!("{e}");
+            error(500, "internal error")
+        }
+    }
+}
+
+async fn handle(req: Request, env: &Env) -> Result<Response> {
+    // Tokens are checked before routing, so unknown paths reveal nothing to anonymous callers.
+    let header = req.headers().get("Authorization")?;
+    let publish = env.secret("PUBLISH_TOKEN")?.to_string();
+    let client = env.secret("CLIENT_TOKEN")?.to_string();
+    let Some(role) = auth::classify(header.as_deref(), &publish, &client) else {
         return error(401, "unauthorized");
-    }
-    Router::new()
-        .post_async("/items", |req, ctx| post_items(req, ctx.env))
-        .get_async("/events", |req, ctx| get_events(req, ctx.env))
-        .run(req, env)
-        .await
-}
-
-/// Checks `Authorization: Bearer <SPIKE_TOKEN>` in constant time.
-fn authorized(req: &Request, env: &Env) -> Result<bool> {
-    let expected = format!("Bearer {}", env.secret("SPIKE_TOKEN")?);
-    let given = req.headers().get("Authorization")?.unwrap_or_default();
-    let (a, b) = (expected.as_bytes(), given.as_bytes());
-    let diff = a
-        .iter()
-        .zip(b)
-        .fold(a.len() ^ b.len(), |acc, (x, y)| acc | usize::from(x ^ y));
-    Ok(diff == 0)
-}
-
-#[derive(Serialize)]
-struct NewItem<'a> {
-    id: String,
-    kind: &'static str,
-    source: &'a str,
-    priority: envelope::Priority,
-    title: &'a str,
-    summary: &'a str,
-    url: Option<&'a str>,
-    body: Value,
-    dedupe_key: Option<&'a str>,
-    expires_at: String,
-}
-
-async fn post_items(mut req: Request, env: Env) -> Result<Response> {
-    let envelope: Envelope = match req.bytes().await.map(|b| serde_json::from_slice(&b)) {
-        Ok(Ok(e)) => e,
-        _ => return error(400, "invalid envelope"),
     };
 
-    let body = serde_json::to_value(&envelope.content)?
-        .get_mut("body")
-        .map(Value::take)
-        .unwrap_or(Value::Null);
-    let ttl_ms = envelope
-        .ttl
-        .unwrap_or(DEFAULT_TTL_SECS)
-        .saturating_mul(1000);
-    let expires_ms = js_sys::Date::now() + ttl_ms as f64;
-    // toISOString throws on dates past the JS range, which would trap the Wasm.
-    if expires_ms > MAX_JS_DATE_MS {
-        return error(400, "invalid envelope");
-    }
-    let expires_at = js_sys::Date::new(&JsValue::from_f64(expires_ms))
-        .to_iso_string()
-        .as_string()
-        .ok_or("invalid ttl")?;
-
-    let item = NewItem {
-        id: uuid::Uuid::new_v4().to_string(),
-        kind: envelope.content.kind(),
-        source: &envelope.source,
-        priority: envelope.priority,
-        title: &envelope.title,
-        summary: &envelope.summary,
-        url: envelope.url.as_deref(),
-        body,
-        dedupe_key: envelope.dedupe_key.as_deref(),
-        expires_at,
+    let path = req.path();
+    let route = match route(&req.method(), &path) {
+        Ok(route) => route,
+        Err(status) => return error(status, status_error(status)),
     };
-
-    let mut resp = supabase(
-        &env,
-        Method::Post,
-        "items",
-        Some(serde_json::to_string(&item)?),
-    )
-    .await?;
-    if resp.status_code() >= 300 {
-        return upstream_error(resp).await;
+    if route.role() != role {
+        return error(403, "forbidden");
     }
-    let rows: Vec<Value> = resp.json().await?;
-    let id = rows
-        .first()
-        .and_then(|r| r.get("id"))
-        .cloned()
-        .ok_or("insert returned no row")?;
-    Response::from_json(&json!({ "id": id }))
+
+    match route {
+        Route::PostItems => items::post(req, env).await,
+        Route::GetItems => items::list(env).await,
+        Route::GetEvents => events::list(req, env).await,
+        Route::PatchItem(id) => items::patch(req, env, id).await,
+        Route::DeleteItem(id) => items::delete(env, id).await,
+    }
 }
 
-#[derive(Deserialize, Serialize)]
-struct Event {
-    seq: i64,
-    #[serde(rename = "type")]
-    kind: String,
-    item_id: String,
-    created_at: String,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    item: Option<Value>,
+#[derive(Debug, PartialEq, Eq)]
+enum Route<'a> {
+    PostItems,
+    GetItems,
+    GetEvents,
+    PatchItem(&'a str),
+    DeleteItem(&'a str),
 }
 
-async fn get_events(req: Request, env: Env) -> Result<Response> {
-    let url = req.url()?;
-    let since = url
-        .query_pairs()
-        .find(|(k, _)| k == "since")
-        .and_then(|(_, v)| v.parse::<i64>().ok());
-    let Some(since) = since else {
-        return error(400, "since must be an integer");
-    };
-
-    let mut resp = supabase(
-        &env,
-        Method::Get,
-        &format!("events?seq=gt.{since}&order=seq.asc"),
-        None,
-    )
-    .await?;
-    if resp.status_code() >= 300 {
-        return upstream_error(resp).await;
-    }
-    let mut events: Vec<Event> = resp.json().await?;
-
-    let ids: Vec<&str> = events
-        .iter()
-        .filter(|e| e.kind == "item.created")
-        .map(|e| e.item_id.as_str())
-        .collect();
-    if !ids.is_empty() {
-        // Item ids are server-generated UUIDs; quoting keeps the filter safe regardless.
-        let list = ids
-            .iter()
-            .map(|id| format!("\"{}\"", id.replace('"', "")))
-            .collect::<Vec<_>>()
-            .join(",");
-        let mut resp = supabase(&env, Method::Get, &format!("items?id=in.({list})"), None).await?;
-        if resp.status_code() >= 300 {
-            return upstream_error(resp).await;
-        }
-        let items: Vec<Value> = resp.json().await?;
-        for event in events.iter_mut().filter(|e| e.kind == "item.created") {
-            event.item = items
-                .iter()
-                .find(|i| i.get("id").and_then(Value::as_str) == Some(&event.item_id))
-                .cloned();
+impl Route<'_> {
+    /// The token an endpoint requires: publishing needs the publish token, all else the client token.
+    fn role(&self) -> Role {
+        match self {
+            Route::PostItems => Role::Publish,
+            _ => Role::Client,
         }
     }
-
-    Response::from_json(&events)
 }
 
-/// Calls PostgREST at `{SUPABASE_URL}/rest/v1/{path}` with the service role key.
-async fn supabase(env: &Env, method: Method, path: &str, body: Option<String>) -> Result<Response> {
-    let base = env.var("SUPABASE_URL")?.to_string();
-    let key = env.secret("SUPABASE_SERVICE_ROLE_KEY")?.to_string();
+/// Maps a request to its endpoint, or to the 404 or 405 status to answer.
+///
+/// An item id that is not a UUID cannot name an item, so it is 404 and never
+/// reaches a PostgREST filter.
+fn route<'a>(method: &Method, path: &'a str) -> std::result::Result<Route<'a>, u16> {
+    match path {
+        "/items" => match method {
+            Method::Post => Ok(Route::PostItems),
+            Method::Get => Ok(Route::GetItems),
+            _ => Err(405),
+        },
+        "/events" => match method {
+            Method::Get => Ok(Route::GetEvents),
+            _ => Err(405),
+        },
+        _ => {
+            let id = path.strip_prefix("/items/").ok_or(404u16)?;
+            if !items::is_uuid(id) {
+                return Err(404);
+            }
+            match method {
+                Method::Patch => Ok(Route::PatchItem(id)),
+                Method::Delete => Ok(Route::DeleteItem(id)),
+                _ => Err(405),
+            }
+        }
+    }
+}
 
-    let headers = Headers::new();
-    headers.set("apikey", &key)?;
-    headers.set("Authorization", &format!("Bearer {key}"))?;
-    headers.set("Accept", "application/json")?;
-    if body.is_some() {
-        headers.set("Content-Type", "application/json")?;
-        headers.set("Prefer", "return=representation")?;
+fn status_error(status: u16) -> &'static str {
+    match status {
+        404 => "not found",
+        _ => "method not allowed",
+    }
+}
+
+pub(crate) fn json_response<T: Serialize>(status: u16, body: &T) -> Result<Response> {
+    Ok(Response::from_json(body)?.with_status(status))
+}
+
+pub(crate) fn error(status: u16, code: &str) -> Result<Response> {
+    json_response(status, &json!({ "error": code }))
+}
+
+pub(crate) fn no_content() -> Result<Response> {
+    Ok(Response::empty()?.with_status(204))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ID: &str = "0b7a3c9e-5f0d-4c1e-9a2b-3c4d5e6f7a8b";
+
+    #[test]
+    fn endpoints_resolve() {
+        assert_eq!(route(&Method::Post, "/items"), Ok(Route::PostItems));
+        assert_eq!(route(&Method::Get, "/items"), Ok(Route::GetItems));
+        assert_eq!(route(&Method::Get, "/events"), Ok(Route::GetEvents));
+        let path = format!("/items/{ID}");
+        assert_eq!(route(&Method::Patch, &path), Ok(Route::PatchItem(ID)));
+        assert_eq!(route(&Method::Delete, &path), Ok(Route::DeleteItem(ID)));
     }
 
-    let mut init = RequestInit::new();
-    init.with_method(method)
-        .with_headers(headers)
-        .with_body(body.map(|b| JsValue::from_str(&b)));
-    let url = format!("{}/rest/v1/{path}", base.trim_end_matches('/'));
-    Fetch::Request(Request::new_with_init(&url, &init)?)
-        .send()
-        .await
-}
+    #[test]
+    fn only_publishing_needs_the_publish_token() {
+        assert_eq!(Route::PostItems.role(), Role::Publish);
+        assert_eq!(Route::GetItems.role(), Role::Client);
+        assert_eq!(Route::GetEvents.role(), Role::Client);
+        assert_eq!(Route::PatchItem(ID).role(), Role::Client);
+        assert_eq!(Route::DeleteItem(ID).role(), Role::Client);
+    }
 
-/// Logs the PostgREST failure and returns 502 without echoing upstream details.
-async fn upstream_error(mut resp: Response) -> Result<Response> {
-    let status = resp.status_code();
-    let text = resp.text().await.unwrap_or_default();
-    worker::console_error!("supabase {status}: {text}");
-    error(502, "upstream error")
-}
+    #[test]
+    fn unknown_paths_are_404() {
+        assert_eq!(route(&Method::Get, "/"), Err(404));
+        assert_eq!(route(&Method::Get, "/nope"), Err(404));
+        assert_eq!(route(&Method::Get, "/items/"), Err(404));
+        assert_eq!(route(&Method::Get, "/events/1"), Err(404));
+        assert_eq!(route(&Method::Patch, &format!("/items/{ID}/x")), Err(404));
+    }
 
-fn error(status: u16, message: &str) -> Result<Response> {
-    Ok(Response::from_json(&json!({ "error": message }))?.with_status(status))
+    #[test]
+    fn non_uuid_item_ids_are_404() {
+        assert_eq!(route(&Method::Patch, "/items/abc"), Err(404));
+        assert_eq!(route(&Method::Delete, "/items/1"), Err(404));
+        assert_eq!(
+            route(
+                &Method::Delete,
+                "/items/0b7a3c9e-5f0d-4c1e-9a2b-3c4d5e6f7a8b&x"
+            ),
+            Err(404)
+        );
+    }
+
+    #[test]
+    fn wrong_methods_are_405() {
+        assert_eq!(route(&Method::Delete, "/items"), Err(405));
+        assert_eq!(route(&Method::Post, "/events"), Err(405));
+        assert_eq!(route(&Method::Get, &format!("/items/{ID}")), Err(405));
+    }
 }

@@ -57,6 +57,21 @@ Mục đích là trả lời bốn câu hỏi có thể làm đổi thiết kế
 5. Request thiếu token hoặc dùng sai loại token bị từ chối.
 6. Khoá anon đọc được `events` nhưng không đọc được `items`.
 
+### Kết quả
+
+Xong ngày 2026-11-23. Sáu tiêu chí đạt trên Worker đã deploy, kiểm bằng `scripts/acceptance-server.sh`; đầu ra ở [báo cáo nghiệm thu](../plans/261123-0159-m1-server/reports/acceptance.md).
+
+| Tiêu chí | Kết quả |
+|---|---|
+| 1 | Đạt. `os-widget publish` in `id`; `GET /events` có `item.created` kèm đúng mục đó. |
+| 2 | Đạt. Thiếu `title`, `vocab` thiếu `definition` (`field` là `body.meanings[0]`) và `kind` lạ (`field` là `kind`) đều trả 400 nêu trường sai. |
+| 3 | Đạt. Lần đầu 201, lần hai 200 cùng `id`, chỉ một `item.created`. |
+| 4 | Đạt. Đã đọc, bỏ đọc và xoá sinh `item.read`, `item.unread`, `item.deleted`; làm lại không sinh thêm sự kiện; `PATCH` sau khi xoá trả 404. |
+| 5 | Đạt. Thiếu token và token sai trả 401; token client gọi `POST /items` và token publish gọi `GET /events` trả 403. |
+| 6 | Đạt. Khoá publishable đọc được `events`; đọc `items` và gọi `rpc/purge_old_rows` đều bị từ chối (401). |
+
+Thêm: `GET /events` giới hạn 100 sự kiện mỗi trang và từ chối `limit=0`; mục không đặt `ttl` hết hạn sau đúng 7 ngày; tác vụ dọn chạy mỗi ngày bằng `pg_cron`; `SPIKE_TOKEN` đã bị gỡ. Dung lượng Worker mới: 656.64 KiB chưa nén, 216.96 KiB sau gzip.
+
 ## Giai đoạn 2: App thanh menu
 
 - App agent với icon thanh menu, chạy khi đăng nhập.
@@ -116,6 +131,5 @@ Nạp từ API làm trước vì đơn giản hơn và đủ để có bộ từ
 ## Việc cần quyết định trước khi bắt đầu
 
 1. API từ điển và định dạng sách dùng để nạp bộ từ (ảnh hưởng giai đoạn 4, không chặn các giai đoạn trước).
-2. Thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl`: đang tạm đặt 30 ngày, chờ xác nhận (ảnh hưởng giai đoạn 1).
 
-Đã chốt: hành vi popup theo FR-6 đến FR-10c của PRD, thời gian popup hiển thị là 30 giây.
+Đã chốt: hành vi popup theo FR-6 đến FR-10c của PRD, thời gian popup hiển thị là 30 giây; thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl` là 7 ngày (2026-11-23).
