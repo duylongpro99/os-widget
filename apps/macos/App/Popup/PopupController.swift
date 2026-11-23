@@ -87,8 +87,9 @@ final class PopupController {
         panel.setContent(AnyView(PopupContentView(
             item: item,
             othersCount: othersCount,
-            card: { PopupPlainCard(item: $0) },
+            card: { CardView(item: $0) },
             onOpenItem: { [weak self] in self?.openItem(item) },
+            onOpenLink: { [weak self] url in self?.openLink(url, in: item) },
             onShowList: { [weak self] in self?.showList() },
             onClose: { [weak self] in self?.close(reason: "button") }
         )))
@@ -116,9 +117,17 @@ final class PopupController {
     /// Clicking the card reads the item, opens its link when it is safe to open, and closes the popup.
     private func openItem(_ item: Item) {
         environment.store.markRead(item.id)
-        if let link = item.url, Self.isOpenable(link), let url = URL(string: link) {
+        if let url = URLPolicy.openableURL(item.url) {
             NSWorkspace.shared.open(url)
         }
+        close(reason: "click")
+    }
+
+    /// Clicking a link inside the card reads the item, opens only that link (already checked by
+    /// `URLPolicy`), and closes the popup.
+    private func openLink(_ url: URL, in item: Item) {
+        environment.store.markRead(item.id)
+        NSWorkspace.shared.open(url)
         close(reason: "click")
     }
 
@@ -128,14 +137,9 @@ final class PopupController {
         requestItemList()
     }
 
-    /// Asks the menu bar to open the item list. The menu bar does not listen for this yet.
-    private func requestItemList() {}
-
-    /// Only `http` and `https` links with a host are opened.
-    private static func isOpenable(_ link: String) -> Bool {
-        guard let url = URL(string: link), let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https" else { return false }
-        return !(url.host() ?? "").isEmpty
+    /// Asks the menu bar to open the item list.
+    private func requestItemList() {
+        NotificationCenter.default.post(name: .openItemListRequested, object: nil)
     }
 
     // MARK: - Countdown

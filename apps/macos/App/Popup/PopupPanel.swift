@@ -1,4 +1,5 @@
 import AppKit
+import OSWidgetKit
 import SwiftUI
 
 /// The popup window. It keeps the flags of the focus experiment: a non-activating utility panel at the
@@ -6,7 +7,10 @@ import SwiftUI
 /// become key, so clicking a button inside it does not take keyboard focus from the frontmost app.
 /// Changing the style mask or the level means checking focus by hand again.
 final class PopupPanel: NSPanel {
-    static let width: CGFloat = 340
+    /// Room for the close button beside the card.
+    static let closeColumnWidth: CGFloat = 32
+    /// The card's fixed width plus the close button.
+    static let width: CGFloat = CardMetrics.width + closeColumnWidth
 
     private let hostingView: PopupHostingView
 
