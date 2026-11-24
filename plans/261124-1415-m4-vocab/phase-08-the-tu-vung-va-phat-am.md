@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: "Thẻ vocab đầy đủ và phát âm"
-status: pending
+status: completed
 priority: P1
 effort: "5h"
 dependencies: []
