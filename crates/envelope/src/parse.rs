@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use serde_path_to_error::Segment;
 
-use crate::{Block, Body, Envelope, Priority};
+use crate::{Block, Body, Envelope, Priority, check_vocab};
 
 /// Why a publish request was rejected.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub struct EnvelopeError {
 }
 
 impl EnvelopeError {
-    fn new(field: impl Into<String>, message: impl Into<String>) -> Self {
+    pub(crate) fn new(field: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             field: field.into(),
             message: message.into(),
@@ -121,7 +121,10 @@ fn decode_body<T: DeserializeOwned>(body: Value) -> Result<T, EnvelopeError> {
 /// Turns a serde error into an `EnvelopeError` whose field is `prefix` followed by
 /// the path serde reached. The path stops at the first segment serde could not
 /// name (malformed JSON inside an object), so it points at the closest known parent.
-fn path_error(prefix: &str, e: serde_path_to_error::Error<serde_json::Error>) -> EnvelopeError {
+pub(crate) fn path_error(
+    prefix: &str,
+    e: serde_path_to_error::Error<serde_json::Error>,
+) -> EnvelopeError {
     let mut field = prefix.to_owned();
     for segment in e.path() {
         match segment {
@@ -180,21 +183,7 @@ fn check(e: &Envelope) -> Result<(), EnvelopeError> {
 
     match &e.content {
         Body::Notification(_) => {}
-        Body::Vocab(b) => {
-            not_blank("body.word", &b.word)?;
-            if let Some(url) = &b.audio_url {
-                https_url("body.audio_url", url)?;
-            }
-            if b.meanings.is_empty() {
-                return Err(EnvelopeError::new(
-                    "body.meanings",
-                    "must have at least one meaning",
-                ));
-            }
-            for (i, m) in b.meanings.iter().enumerate() {
-                not_blank(&format!("body.meanings[{i}].definition"), &m.definition)?;
-            }
-        }
+        Body::Vocab(b) => check_vocab(b, "body.")?,
         Body::Generic(b) => {
             for (i, block) in b.blocks.iter().enumerate() {
                 match block {
@@ -208,7 +197,7 @@ fn check(e: &Envelope) -> Result<(), EnvelopeError> {
     Ok(())
 }
 
-fn not_blank(field: &str, value: &str) -> Result<(), EnvelopeError> {
+pub(crate) fn not_blank(field: &str, value: &str) -> Result<(), EnvelopeError> {
     if value.trim().is_empty() {
         return Err(EnvelopeError::new(field, "must not be empty"));
     }
@@ -225,7 +214,7 @@ fn web_url(field: &str, url: &str) -> Result<(), EnvelopeError> {
     ))
 }
 
-fn https_url(field: &str, url: &str) -> Result<(), EnvelopeError> {
+pub(crate) fn https_url(field: &str, url: &str) -> Result<(), EnvelopeError> {
     if url.starts_with("https://") {
         return Ok(());
     }
