@@ -91,7 +91,7 @@ Thêm: `swift test` của `OSWidgetKit` pass (127 test cũ cộng test mới); `
 |---|-------|--------|---|---|
 | 1 | [Widget extension target, ký và điểm nối](./phase-01-widget-target-va-diem-noi.md) | Completed | Không | Có (ký, entitlement) |
 | 2 | [Đọc kho, snapshot và hộp thư thao tác](./phase-02-snapshot-va-hop-thu-thao-tac.md) | Completed | Không | Có (vị trí hộp thư) |
-| 3 | [Chính sách reload và đếm reload](./phase-03-chinh-sach-reload-va-dem.md) | Pending | 1, 2 | Không |
+| 3 | [Chính sách reload và đếm reload](./phase-03-chinh-sach-reload-va-dem.md) | Completed | 1, 2 | Không |
 | 4 | [Giao diện widget và bố cục rút gọn theo loại](./phase-04-giao-dien-widget-va-bo-cuc-rut-gon.md) | Completed | 1, 2 | Có (nguồn dữ liệu provider) |
 | 5 | [Nút đã đọc và xoá, app nhận thao tác](./phase-05-nut-da-doc-xoa-va-nhan-thao-tac.md) | Pending | 1, 2, 4 | Có (đường gửi thao tác) |
 | 6 | [Cài, nghiệm thu, đếm một ngày và tài liệu](./phase-06-nghiem-thu-va-tai-lieu.md) | Pending | 1–5 | Có (cách cài) |

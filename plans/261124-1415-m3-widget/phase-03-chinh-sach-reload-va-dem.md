@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Chính sách reload và đếm reload"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [1, 2]
@@ -56,10 +56,10 @@ App yêu cầu WidgetKit làm mới chỉ khi `WidgetSnapshot` đổi, không qu
 
 ## Tasks & Steps
 
-- [ ] `WidgetReloadPolicy` và test.
-- [ ] Thân `WidgetReloader` (quan sát, hẹn giờ một lần bằng `Task.sleep`, gọi `WidgetCenter`, log).
-- [ ] Script đếm và mẫu ndjson; chạy script trên mẫu.
-- [ ] Build Debug không ký.
+- [x] `WidgetReloadPolicy` và test.
+- [x] Thân `WidgetReloader` (quan sát, hẹn giờ một lần bằng `Task.sleep`, gọi `WidgetCenter`, log).
+- [x] Script đếm và mẫu ndjson; chạy script trên mẫu.
+- [x] Build Debug không ký.
 
 | Test | Kiểm |
 |---|---|
