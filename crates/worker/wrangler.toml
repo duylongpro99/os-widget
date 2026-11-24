@@ -6,6 +6,9 @@ workers_dev = true
 [build]
 command = "worker-build --release"
 
+[triggers]
+crons = ["*/5 * * * *"]
+
 [observability]
 enabled = true
 
