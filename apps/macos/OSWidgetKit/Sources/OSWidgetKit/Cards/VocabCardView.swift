@@ -13,6 +13,7 @@ public struct VocabCardView: View {
 
     let item: Item
     let vocab: VocabContent
+    @Environment(\.cardControlClicked) private var cardControlClicked
 
     public init(item: Item, vocab: VocabContent) {
         self.item = item
@@ -101,6 +102,8 @@ public struct VocabCardView: View {
 
     private var pronounceButton: some View {
         Button {
+            // The press is for the sound only; it must not also mark the card read or open its link.
+            cardControlClicked()
             Pronouncer.shared.pronounce(word: vocab.word, audioURL: vocab.audioURL)
         } label: {
             Image(systemName: "speaker.wave.2")

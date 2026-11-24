@@ -169,4 +169,13 @@ struct CardsTests {
         gate.linkOpened(at: 10)
         #expect(gate.allowsTap(at: 10 + CardClickGate.linkWindow + 0.1))
     }
+
+    @MainActor
+    @Test func cardTapIsDroppedForTheClickHandledByAControl() {
+        let gate = CardClickGate()
+        gate.controlClicked(at: 10)
+        #expect(!gate.allowsTap(at: 10))
+        #expect(!gate.allowsTap(at: 9.9))
+        #expect(gate.allowsTap(at: 10 + CardClickGate.linkWindow + 0.1))
+    }
 }
