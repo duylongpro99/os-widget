@@ -37,7 +37,10 @@ pub enum SkipReason {
     MissingIpa,
     NoDefinition,
     /// The mapped body fails the shared vocab rules.
-    Invalid { field: String, message: String },
+    Invalid {
+        field: String,
+        message: String,
+    },
 }
 
 impl fmt::Display for SkipReason {
@@ -231,8 +234,7 @@ where
             };
             match status {
                 200 => {
-                    return serde_json::from_str(&body)
-                        .map_err(|_| SkipReason::UnexpectedResponse);
+                    return serde_json::from_str(&body).map_err(|_| SkipReason::UnexpectedResponse);
                 }
                 404 => return Err(SkipReason::NotFound),
                 429 | 500..=599 => match retries.next() {
@@ -255,25 +257,27 @@ where
     }
 }
 
-impl Dictionary<Box<dyn FnMut(&str) -> Fetched>, fn(Duration)> {
-    /// The real thing: HTTPS requests and sleeping the thread.
-    pub fn http(base_url: &str) -> Self {
-        let agent: ureq::Agent = ureq::Agent::config_builder()
-            .http_status_as_error(false)
-            .timeout_global(Some(Duration::from_secs(30)))
-            .user_agent(USER_AGENT)
-            .build()
-            .into();
-        let fetch = move |url: &str| -> Fetched {
-            let mut response = agent.get(url).call().map_err(|e| e.to_string())?;
-            let status = response.status().as_u16();
-            let body = response
-                .body_mut()
-                .read_to_string()
-                .map_err(|e| e.to_string())?;
-            Ok((status, body))
-        };
-        Dictionary::new(base_url, Box::new(fetch), std::thread::sleep)
+/// The real thing: HTTPS requests, and sleeping the thread.
+pub fn http(base_url: &str) -> Dictionary<impl FnMut(&str) -> Fetched, fn(Duration)> {
+    Dictionary::new(base_url, http_fetch(), std::thread::sleep)
+}
+
+/// A transport that GETs a URL and reports the status and body as they come.
+pub fn http_fetch() -> impl FnMut(&str) -> Fetched {
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .timeout_global(Some(Duration::from_secs(30)))
+        .user_agent(USER_AGENT)
+        .build()
+        .into();
+    move |url: &str| {
+        let mut response = agent.get(url).call().map_err(|e| e.to_string())?;
+        let status = response.status().as_u16();
+        let body = response
+            .body_mut()
+            .read_to_string()
+            .map_err(|e| e.to_string())?;
+        Ok((status, body))
     }
 }
 
@@ -339,7 +343,11 @@ mod tests {
             .as_str()
             .unwrap()
             .to_owned();
-        assert!(body.meanings.iter().all(|m| m.definition != noun_definition));
+        assert!(
+            body.meanings
+                .iter()
+                .all(|m| m.definition != noun_definition)
+        );
         assert_eq!(body.synonyms[..2], ["frank", "open"]);
     }
 
@@ -429,7 +437,11 @@ mod tests {
             "meanings": [{"partOfSpeech": "noun", "definitions": defs}]
         }));
         let body = map_entry("w", &json).unwrap();
-        let got: Vec<_> = body.meanings.iter().map(|m| m.definition.as_str()).collect();
+        let got: Vec<_> = body
+            .meanings
+            .iter()
+            .map(|m| m.definition.as_str())
+            .collect();
         assert_eq!(got, ["d0", "d1", "d2"]);
     }
 
@@ -458,7 +470,10 @@ mod tests {
                  "definitions": [{"definition": "d1"}, {"definition": "d2"}]}
             ]
         }));
-        assert_eq!(map_entry("w", &json).unwrap().synonyms, vec!["mine", "other"]);
+        assert_eq!(
+            map_entry("w", &json).unwrap().synonyms,
+            vec!["mine", "other"]
+        );
     }
 
     #[test]
@@ -561,14 +576,20 @@ mod tests {
     fn lookup_requests_the_word_under_the_base_url() {
         let (mut dict, script) = scripted("http://dict.test/en/", vec![ok("[]")]);
         assert_eq!(dict.lookup("candid").unwrap(), serde_json::json!([]));
-        assert_eq!(script.urls.borrow().as_slice(), ["http://dict.test/en/candid"]);
+        assert_eq!(
+            script.urls.borrow().as_slice(),
+            ["http://dict.test/en/candid"]
+        );
     }
 
     #[test]
     fn apostrophes_are_percent_encoded_in_the_url() {
         let (mut dict, script) = scripted("http://dict.test", vec![ok("[]")]);
         dict.lookup("o'clock").unwrap();
-        assert_eq!(script.urls.borrow().as_slice(), ["http://dict.test/o%27clock"]);
+        assert_eq!(
+            script.urls.borrow().as_slice(),
+            ["http://dict.test/o%27clock"]
+        );
     }
 
     #[test]
@@ -619,7 +640,10 @@ mod tests {
     #[test]
     fn other_statuses_and_transport_errors_are_not_retried() {
         let (mut dict, script) = scripted("http://d", vec![status(403)]);
-        assert_eq!(dict.lookup("w").unwrap_err(), SkipReason::DictionaryStatus(403));
+        assert_eq!(
+            dict.lookup("w").unwrap_err(),
+            SkipReason::DictionaryStatus(403)
+        );
         assert_eq!(script.urls.borrow().len(), 1);
 
         let (mut dict, _) = scripted("http://d", vec![Err("connection refused".into())]);
@@ -632,17 +656,26 @@ mod tests {
     #[test]
     fn a_200_that_is_not_json_is_unexpected() {
         let (mut dict, _) = scripted("http://d", vec![ok("<html>")]);
-        assert_eq!(dict.lookup("w").unwrap_err(), SkipReason::UnexpectedResponse);
+        assert_eq!(
+            dict.lookup("w").unwrap_err(),
+            SkipReason::UnexpectedResponse
+        );
     }
 
     #[test]
     fn consecutive_lookups_are_spaced_by_at_least_300_ms() {
         let (mut dict, script) = scripted("http://d", vec![ok("[]"), ok("[]")]);
         dict.lookup("a").unwrap();
-        assert!(script.sleeps.borrow().is_empty(), "the first request waits for nothing");
+        assert!(
+            script.sleeps.borrow().is_empty(),
+            "the first request waits for nothing"
+        );
         dict.lookup("b").unwrap();
         let sleeps = script.sleeps.borrow();
         assert_eq!(sleeps.len(), 1);
-        assert!(sleeps[0] > Duration::from_millis(250) && sleeps[0] <= MIN_GAP, "{sleeps:?}");
+        assert!(
+            sleeps[0] > Duration::from_millis(250) && sleeps[0] <= MIN_GAP,
+            "{sleeps:?}"
+        );
     }
 }
