@@ -61,6 +61,55 @@ enum IngestCommand {
     /// server URL comes from OS_WIDGET_SERVER (or --server) and the token from
     /// OS_WIDGET_PUBLISH_TOKEN; the token is never accepted as a flag.
     Words(WordsArgs),
+
+    /// Pick words from a plain-text book and send them, with the sentence each
+    /// appears in, to `POST /vocab/words`.
+    ///
+    /// PATH is a UTF-8 `.txt` book (a Project Gutenberg text is trimmed to its
+    /// body), or `-` for stdin. Words are chosen by the book itself: not function
+    /// words, not among its most common words, at least twice in the text and at
+    /// least once in lower case. The Free Dictionary API completes each word;
+    /// words it cannot complete are skipped and reported. The server URL comes
+    /// from OS_WIDGET_SERVER (or --server) and the token from
+    /// OS_WIDGET_PUBLISH_TOKEN; the token is never accepted as a flag.
+    Book(BookArgs),
+}
+
+#[derive(Debug, Args)]
+struct BookArgs {
+    /// UTF-8 text file of the book, or `-` for stdin.
+    #[arg(value_name = "PATH")]
+    path: String,
+
+    /// Name of the book, stored with each word.
+    #[arg(long)]
+    origin: String,
+
+    /// Most words to take from the book.
+    #[arg(long, default_value_t = 50)]
+    max: usize,
+
+    /// Shortest word, in letters.
+    #[arg(long, value_name = "LETTERS", default_value_t = 5)]
+    min_length: usize,
+
+    /// Base URL of the dictionary API; the word is appended to it.
+    #[arg(long, value_name = "URL", default_value = ingest::dictionary::DEFAULT_URL)]
+    dictionary_url: String,
+
+    /// Server URL; overrides OS_WIDGET_SERVER.
+    #[arg(long, value_name = "URL")]
+    server: Option<String>,
+
+    /// Print the chosen words with their context sentences, without calling the
+    /// dictionary or the server.
+    #[arg(long)]
+    dry_run: bool,
+
+    /// With --dry-run, also look the words up and print the bodies that would be
+    /// sent, still without calling the server.
+    #[arg(long, requires = "dry_run")]
+    lookup: bool,
 }
 
 #[derive(Debug, Args)]
@@ -208,6 +257,9 @@ fn main() -> ExitCode {
         Command::Ingest(IngestArgs {
             command: IngestCommand::Words(args),
         }) => ingest::words(args),
+        Command::Ingest(IngestArgs {
+            command: IngestCommand::Book(args),
+        }) => ingest::book(args),
     };
     if let Some(out) = &report.stdout {
         println!("{out}");
@@ -675,7 +727,7 @@ mod tests {
             Command::Ingest(IngestArgs {
                 command: IngestCommand::Words(args),
             }) => args,
-            Command::Publish(_) => unreachable!("ingest was asked for"),
+            Command::Ingest(_) | Command::Publish(_) => unreachable!("ingest words was asked for"),
         })
     }
 
@@ -716,6 +768,68 @@ mod tests {
     fn ingest_words_needs_a_path_and_has_no_token_flag() {
         assert!(parse_words(&[]).is_err());
         assert!(parse_words(&["list.txt", "--token", "secret"]).is_err());
+    }
+
+    fn parse_book(extra: &[&str]) -> Result<BookArgs, clap::Error> {
+        let argv = ["os-widget", "ingest", "book"].iter().chain(extra);
+        Cli::try_parse_from(argv).map(|cli| match cli.command {
+            Command::Ingest(IngestArgs {
+                command: IngestCommand::Book(args),
+            }) => args,
+            Command::Ingest(_) | Command::Publish(_) => unreachable!("ingest book was asked for"),
+        })
+    }
+
+    #[test]
+    fn ingest_book_defaults_to_fifty_words_of_five_letters() {
+        let args = parse_book(&["book.txt", "--origin", "Pride and Prejudice"]).unwrap();
+        assert_eq!(args.path, "book.txt");
+        assert_eq!(args.origin, "Pride and Prejudice");
+        assert_eq!((args.max, args.min_length), (50, 5));
+        assert_eq!(
+            args.dictionary_url,
+            "https://api.dictionaryapi.dev/api/v2/entries/en"
+        );
+        assert_eq!(args.server, None);
+        assert!(!args.dry_run && !args.lookup);
+    }
+
+    #[test]
+    fn ingest_book_takes_every_flag() {
+        let args = parse_book(&[
+            "-",
+            "--origin",
+            "b",
+            "--max",
+            "10",
+            "--min-length",
+            "7",
+            "--dictionary-url",
+            "http://localhost:9/en",
+            "--server",
+            "https://s.example",
+            "--dry-run",
+            "--lookup",
+        ])
+        .unwrap();
+        assert_eq!(args.path, "-");
+        assert_eq!((args.max, args.min_length), (10, 7));
+        assert_eq!(args.dictionary_url, "http://localhost:9/en");
+        assert_eq!(args.server.as_deref(), Some("https://s.example"));
+        assert!(args.dry_run && args.lookup);
+    }
+
+    #[test]
+    fn ingest_book_needs_a_path_and_an_origin_and_has_no_token_flag() {
+        assert!(parse_book(&[]).is_err());
+        assert!(parse_book(&["book.txt"]).is_err());
+        assert!(parse_book(&["book.txt", "--origin", "b", "--token", "secret"]).is_err());
+    }
+
+    #[test]
+    fn lookup_only_makes_sense_with_a_dry_run() {
+        assert!(parse_book(&["book.txt", "--origin", "b", "--lookup"]).is_err());
+        assert!(parse_book(&["book.txt", "--origin", "b", "--lookup", "--dry-run"]).is_ok());
     }
 
     #[test]
