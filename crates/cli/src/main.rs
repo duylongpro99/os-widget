@@ -3,6 +3,8 @@
 //! `publish` validates an envelope with `envelope::parse` before sending it to
 //! `POST /items`, so a malformed envelope never reaches the network.
 
+mod ingest;
+
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
 use std::time::Duration;
