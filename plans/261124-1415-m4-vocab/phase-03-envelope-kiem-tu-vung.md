@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Envelope: kiểm một từ vựng"
-status: pending
+status: completed
 priority: P1
 effort: "1.5h"
 dependencies: []
@@ -37,9 +37,9 @@ Crate `envelope` có một hàm công khai kiểm một body `vocab` đứng ri�
 
 ## Tasks & Steps
 
-- [ ] Thêm hai hàm, re-export ở `lib.rs`.
-- [ ] Test trong `tests/vocab.rs`: body đủ trường hợp lệ; thiếu `ipa`; `ipa` chỉ có khoảng trắng; `pos` rỗng; `word` có `\n`; `meanings` rỗng; `definition` rỗng ở nghĩa thứ hai cho `field` là `meanings[1].definition`; `audio_url` `http://` bị từ chối; envelope `vocab` có `ipa` rỗng qua `envelope::parse` cho `field` là `body.ipa`.
-- [ ] Chạy test cũ của crate: test round-trip và test lỗi hiện có vẫn pass.
+- [x] Thêm hai hàm, re-export ở `lib.rs`.
+- [x] Test trong `tests/vocab.rs`: body đủ trường hợp lệ; thiếu `ipa`; `ipa` chỉ có khoảng trắng; `pos` rỗng; `word` có `\n`; `meanings` rỗng; `definition` rỗng ở nghĩa thứ hai cho `field` là `meanings[1].definition`; `audio_url` `http://` bị từ chối; envelope `vocab` có `ipa` rỗng qua `envelope::parse` cho `field` là `body.ipa`.
+- [x] Chạy test cũ của crate: test round-trip và test lỗi hiện có vẫn pass.
 
 ## Verification
 
