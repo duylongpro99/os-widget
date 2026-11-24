@@ -179,6 +179,35 @@ public final class ItemStore {
         save()
     }
 
+    // MARK: - Widget actions
+
+    /// Applies the actions waiting in `inbox` in order, through the same rules as the buttons in the
+    /// app, then removes their files and any corrupt ones. Returns how many actions changed the store.
+    ///
+    /// An action for an unknown or deleted item, or a read for an item already read, changes nothing.
+    /// Files are removed only after the store is saved, so if the app dies in between the next drain
+    /// finds the same files and applying them again leaves the store as it is. Each action keeps the
+    /// time of the tap, so the store ends up equal to what the widget showed while it waited.
+    @discardableResult
+    public func drain(_ inbox: ActionInbox) -> Int {
+        let contents = inbox.contents()
+        var applied = 0
+        for action in contents.actions {
+            guard let item = item(id: action.itemId), !item.isDeleted else { continue }
+            switch action.operation {
+            case .markRead:
+                guard !item.isRead else { continue }
+                enqueue(itemId: action.itemId, operation: .read(true), at: action.createdAt)
+            case .delete:
+                enqueue(itemId: action.itemId, operation: .delete, at: action.createdAt)
+            }
+            applied += 1
+        }
+        inbox.remove(contents.actions.map(\.id))
+        inbox.removeCorrupt(contents.corrupt)
+        return applied
+    }
+
     // MARK: - Popup settings
 
     public func setPopup(kind: String, enabled: Bool) {
@@ -193,7 +222,7 @@ public final class ItemStore {
 
     // MARK: - Queue
 
-    private func enqueue(itemId: String, operation: PendingAction.Operation) {
+    private func enqueue(itemId: String, operation: PendingAction.Operation, at time: Date? = nil) {
         // A deleted item takes no further actions: delete wins over read, even after the delete was sent.
         guard let item = item(id: itemId), !item.isDeleted else { return }
         let pending = queue.filter { $0.itemId == itemId }
@@ -206,7 +235,7 @@ public final class ItemStore {
             if pending.contains(where: { $0.operation == .delete }) { return }
             queue.removeAll { $0.itemId == itemId }
         }
-        queue.append(PendingAction(itemId: itemId, operation: operation, createdAt: now()))
+        queue.append(PendingAction(itemId: itemId, operation: operation, createdAt: time ?? now()))
         reapplyQueue()
         save()
     }

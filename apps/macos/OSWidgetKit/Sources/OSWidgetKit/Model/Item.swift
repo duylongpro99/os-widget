@@ -202,4 +202,5 @@ struct LossyArray<Element: Decodable>: Decodable {
 enum Log {
     static let model = Logger(subsystem: "local.oswidget.app", category: "model")
     static let store = Logger(subsystem: "local.oswidget.app", category: "store")
+    static let widget = Logger(subsystem: "local.oswidget.app", category: "widget")
 }
