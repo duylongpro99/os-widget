@@ -65,7 +65,7 @@ Thêm: CPU của mỗi lần chạy cron được đo trên bản deploy và ghi
 | 2 | [Schema `vocab_words`, `settings` và hàm gửi từ](./phase-02-schema-va-ham-gui-tu.md) | Pending | Server | Không |
 | 3 | [Envelope: kiểm một từ vựng](./phase-03-envelope-kiem-tu-vung.md) | Completed | Server | Không |
 | 4 | [Worker: `POST /vocab/words` và Cron Trigger](./phase-04-worker-nap-tu-va-cron.md) | Pending | Server | 2, 3 |
-| 5 | [CLI `ingest words` từ Free Dictionary API](./phase-05-cli-ingest-tu-api.md) | Pending | Server | 1, 3 |
+| 5 | [CLI `ingest words` từ Free Dictionary API](./phase-05-cli-ingest-tu-api.md) | Completed | Server | 1, 3 |
 | 6 | [CLI `ingest book` từ sách `.txt`](./phase-06-cli-ingest-tu-sach.md) | Pending | Server | 5 |
 | 7 | [Deploy, đo CPU cron và nghiệm thu server](./phase-07-deploy-va-nghiem-thu-server.md) | Pending | Server, có bước **[operator]** | 2, 4, 5, 6 |
 | 8 | [Thẻ `vocab` đầy đủ và phát âm](./phase-08-the-tu-vung-va-phat-am.md) | Pending | Client | Không (xếp lịch tránh cook M3 sửa cùng file) |

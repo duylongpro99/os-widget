@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Giao diện widget và bố cục rút gọn theo loại"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [1, 2]
@@ -54,9 +54,9 @@ Widget `OSWidgetItems` cỡ vừa và cỡ lớn đọc kho dùng chung, hiện 
 
 ## Tasks & Steps
 
-- [ ] View rút gọn và `WidgetSize`, kèm `#Preview` cho từng loại (dùng fixture `items.json` có sẵn: `notification`, `generic` có block lạ, `vocab`, `weather`).
-- [ ] Provider, widget, view widget, hàng, khung nút.
-- [ ] Test (bảng dưới); build Debug không ký.
+- [x] View rút gọn và `WidgetSize`, kèm `#Preview` cho từng loại (dùng fixture `items.json` có sẵn: `notification`, `generic` có block lạ, `vocab`, `weather`).
+- [x] Provider, widget, view widget, hàng, khung nút.
+- [x] Test (bảng dưới); build Debug không ký.
 
 | Test | Kiểm |
 |---|---|

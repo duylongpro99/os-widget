@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "CLI ingest words từ Free Dictionary API"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [1, 3]
