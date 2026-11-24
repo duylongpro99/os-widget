@@ -7,7 +7,7 @@
 | 1. Popup trong 5 giây (PRD §10.1) | PASS, `latency_ms=781` (lần chạy của operator); các lần kiểm không cần operator: 334–650 ms |
 | 3a. Đã đọc từ thiết bị khác, giả bằng API (PRD §10.3) | PASS, app áp dụng `item.read` seq 425, operator thấy mục thành đã đọc |
 | 3b. Đã đọc từ MacBook sang server (PRD §10.3) | PASS, `GET /items` có `read_at`, `GET /events` có `item.read` seq 427 |
-| 4. Mất mạng, ba mục từ máy khác (PRD §10.4) | Hoãn: chưa có máy thứ hai (operator hiện chỉ có MacBook, 2026-11-23) |
+| 4. Mất mạng, ba mục từ máy khác (PRD §10.4) | Hoãn: chưa có máy thứ hai (operator hiện chỉ có MacBook, 2026-11-23). Operator chấp nhận đóng M2 và kiểm khi có máy thứ hai (2026-11-24 09:52). |
 | 6. Loại chưa có view (PRD §10.6) | PASS, mục `vocab` hiện `title` và `summary` bằng view dự phòng |
 | Focus | PASS (chạy lại 09:09): `lsappinfo front` là TextEdit trước và sau `popup.shown`, ký tự gõ vẫn vào TextEdit. Lần chạy 09:05 không có popup vì danh sách mục đang mở (`popup.suppressed reason=list_open`) |
 

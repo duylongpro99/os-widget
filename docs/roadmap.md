@@ -85,13 +85,13 @@ Thêm: `GET /events` giới hạn 100 sự kiện mỗi trang và từ chối `l
 
 ### Kết quả
 
-Đang nghiệm thu. App cài trên MacBook ngày 2026-11-23 từ `apps/macos/` (ký Personal Team, kho `store.json` trong group container, xem [architecture.md](architecture.md#app-thanh-menu-đã-làm-giai-đoạn-2) §6), kiểm bằng `scripts/acceptance-menu-bar.sh`; đầu ra ở [báo cáo nghiệm thu](../plans/261123-1547-m2-menu-bar-app/reports/acceptance.md). Theo quyết định của chủ dự án, M2 chỉ cài trên MacBook; thiết bị thứ hai ở tiêu chí 3 được giả bằng API với token client, kiểm với Mac mini thật chuyển sang Giai đoạn 5.
+Xong ngày 2026-11-24 (tiêu chí 4 hoãn tới khi có máy thứ hai, theo quyết định của chủ dự án). App cài trên MacBook ngày 2026-11-23 từ `apps/macos/` (ký Personal Team, kho `store.json` trong group container, xem [architecture.md](architecture.md#app-thanh-menu-đã-làm-giai-đoạn-2) §6), kiểm bằng `scripts/acceptance-menu-bar.sh`; đầu ra ở [báo cáo nghiệm thu](../plans/261123-1547-m2-menu-bar-app/reports/acceptance.md). Theo quyết định của chủ dự án, M2 chỉ cài trên MacBook; thiết bị thứ hai ở tiêu chí 3 được giả bằng API với token client, kiểm với Mac mini thật chuyển sang Giai đoạn 5.
 
 | Tiêu chí | Kết quả |
 |---|---|
 | 1 | Đạt. Popup hiện sau 781 ms (các lần kiểm khác 334–650 ms), đo từ `created_at` tới dòng log `popup.shown`; tín hiệu Realtime tới trong khoảng 0,4 s. |
 | 3 | Đạt trên một máy. Đã đọc đặt bằng API tới app trong dưới 1 s; bấm đã đọc trên app thì `GET /items` có `read_at` và `GET /events` có `item.read`. |
-| 4 | Hoãn: chưa có máy thứ hai chạy CLI. |
+| 4 | Hoãn: chưa có máy thứ hai chạy CLI. Kiểm bằng `scripts/acceptance-menu-bar.sh 4` khi có máy thứ hai (cùng lúc với Giai đoạn 5). |
 | 6 | Đạt. Mục `vocab` (app chưa có view riêng) hiện `title` và `summary` bằng view dự phòng; `kind` không tồn tại có unit test. |
 | Focus | Đạt. Popup tự mở khi đang gõ TextEdit: `lsappinfo front` là TextEdit trước và sau khi popup hiện, ký tự gõ vẫn vào TextEdit. |
 
@@ -131,6 +131,7 @@ Nạp từ API làm trước vì đơn giản hơn và đủ để có bộ từ
 ## Giai đoạn 5: Hoàn thiện
 
 - Cài và chạy trên cả MacBook và Mac mini.
+- Kiểm tiêu chí 4 của Giai đoạn 2 (PRD §10.4) còn hoãn, nếu chưa kiểm trước đó.
 - App báo rõ khi server không phản hồi hoặc token sai.
 - Tích hợp ba bên gửi thật: nhóm agent blog, Hermes, bộ sinh từ vựng.
 - Hướng dẫn cài đặt, cấu hình token và cách thêm một loại nội dung mới.

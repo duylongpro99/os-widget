@@ -1,7 +1,7 @@
 ---
 title: "M2: App thanh menu"
 description: "Hoàn thành Giai đoạn 2 của roadmap: app agent trên thanh menu macOS với sync engine (Realtime, cursor, poll dự phòng), kho cục bộ và hàng đợi thao tác, popup không kích hoạt, danh sách và view thẻ; kiểm bằng tiêu chí 1, 3, 4, 6 của PRD §10 và quy tắc không cướp focus."
-status: in-progress
+status: completed
 priority: P1
 effort: 28h
 branch: main
@@ -47,7 +47,7 @@ Phase có thiết kế phụ thuộc thử nghiệm: Phase 1 (A: ký và entitle
 
 1. **PRD §10.1.** Một lệnh `os-widget publish` từ máy khác làm popup hiện trên MacBook trong 5 giây. Đo bằng dòng log `popup.shown` của app, ghi độ trễ từ `created_at` của mục tới lúc panel hiện.
 2. **PRD §10.3, kiểm trên một máy.** Thiết bị thứ hai được giả bằng API với token client: (a) script gọi `PATCH /items/{id}` `{"read": true}` thì app trên MacBook hiện mục đó là đã đọc trong vài giây; (b) bấm đã đọc trên MacBook thì `GET /items` thấy `read_at` đã đặt và `GET /events` có `item.read`. Kiểm bằng Mac mini thật chuyển sang Giai đoạn 5 (quyết định của operator, 2026-11-23).
-3. **PRD §10.4.** Tắt mạng MacBook, publish ba mục từ một máy khác chỉ chạy CLI (ví dụ Mac mini, không cài app), bật mạng lại: cả ba mục hiện đủ trong danh sách, không trùng.
+3. **PRD §10.4.** Tắt mạng MacBook, publish ba mục từ một máy khác chỉ chạy CLI (ví dụ Mac mini, không cài app), bật mạng lại: cả ba mục hiện đủ trong danh sách, không trùng. *Hoãn tới khi có máy thứ hai; operator chấp nhận đóng M2 không có mục này (2026-11-24 09:52: "đánh dấu tiêu chí 4 lại khi nào có máy thứ 2 sẽ test, xem như M2 xong, push và chuẩn bị chuuyeenr sang M3"). Kiểm bằng `scripts/acceptance-menu-bar.sh 4`.*
 4. **PRD §10.6.** Một mục có `kind` lạ vẫn hiện `title` và `summary`. Server từ chối `kind` ngoài ba loại, nên kiểm đầu-cuối bằng mục `vocab` (M2 chưa có view `vocab`, Giai đoạn 4 mới có) cùng unit test với một chuỗi `kind` không tồn tại.
 5. **Quy tắc focus.** Popup tự mở khi đang gõ trong TextEdit không lấy focus: ký tự gõ tiếp vẫn vào TextEdit, `lsappinfo front` trước và sau khi popup hiện cùng là TextEdit.
 

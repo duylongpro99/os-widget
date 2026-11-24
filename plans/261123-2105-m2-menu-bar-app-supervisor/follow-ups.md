@@ -49,3 +49,8 @@ Nguyên văn: "chúng ta không thể chời tới ngày 30/11 để tiếp tụ
 - Chờ operator: mục 10 đăng xuất/đăng nhập (tự chạy, không icon Dock); mục 11 ngủ qua đêm; tiêu chí 4 (PRD §10.4) khi có máy thứ hai — xong thì đóng plan M2.
 - 2026-11-30: kiểm A ngày 8 (có thể đổi nhánh ký/cài).
 - main chưa push lên origin.
+
+## Đóng M2 (2026-11-24 09:52)
+Operator, nguyên văn: "đánh dấu tiêu chí 4 lại khi nào có máy thứ 2 sẽ test, xem như M2 xong, push và chuẩn bị chuuyeenr sang M3".
+- Plan M2 `status: completed`; tiêu chí 4 ghi hoãn trong plan.md (Done means 3), phase-06, acceptance.md, roadmap (Giai đoạn 2 và một dòng ở Giai đoạn 5).
+- Còn mở sau khi đóng M2: tiêu chí 4 khi có máy thứ hai; mục 10, 11 của checklist; kiểm A ngày 8 (2026-11-30); "+N" của popup.
