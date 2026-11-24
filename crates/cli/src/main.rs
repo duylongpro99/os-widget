@@ -1,7 +1,10 @@
 //! `os-widget`: command-line publisher for agents and cron jobs.
 //!
 //! `publish` validates an envelope with `envelope::parse` before sending it to
-//! `POST /items`, so a malformed envelope never reaches the network.
+//! `POST /items`, so a malformed envelope never reaches the network. `ingest`
+//! fills the vocabulary from outside sources.
+
+mod ingest;
 
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
@@ -38,6 +41,50 @@ enum Command {
     /// The server URL comes from OS_WIDGET_SERVER (or --server) and the token from
     /// OS_WIDGET_PUBLISH_TOKEN; the token is never accepted as a flag.
     Publish(PublishArgs),
+
+    /// Fill the vocabulary from an outside source.
+    Ingest(IngestArgs),
+}
+
+#[derive(Debug, Args)]
+struct IngestArgs {
+    #[command(subcommand)]
+    command: IngestCommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum IngestCommand {
+    /// Look words up in the Free Dictionary API and send them to `POST /vocab/words`.
+    ///
+    /// Reads one word per line from PATH, or from stdin when PATH is `-`. Words the
+    /// API cannot complete (no IPA, no definition) are skipped and reported. The
+    /// server URL comes from OS_WIDGET_SERVER (or --server) and the token from
+    /// OS_WIDGET_PUBLISH_TOKEN; the token is never accepted as a flag.
+    Words(WordsArgs),
+}
+
+#[derive(Debug, Args)]
+struct WordsArgs {
+    /// File with one word per line, or `-` for stdin.
+    #[arg(value_name = "PATH")]
+    path: String,
+
+    /// Source name stored with each word.
+    #[arg(long, default_value = ingest::DEFAULT_ORIGIN)]
+    origin: String,
+
+    /// Base URL of the dictionary API; the word is appended to it.
+    #[arg(long, value_name = "URL", default_value = ingest::dictionary::DEFAULT_URL)]
+    dictionary_url: String,
+
+    /// Server URL; overrides OS_WIDGET_SERVER.
+    #[arg(long, value_name = "URL")]
+    server: Option<String>,
+
+    /// Look the words up and print the bodies that would be sent, without
+    /// calling the server or needing a token.
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Debug, Args)]
@@ -152,6 +199,9 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let report = match cli.command {
         Command::Publish(args) => publish(args),
+        Command::Ingest(IngestArgs {
+            command: IngestCommand::Words(args),
+        }) => ingest::words(args),
     };
     if let Some(out) = &report.stdout {
         println!("{out}");
@@ -239,19 +289,26 @@ fn resolve_config(
     server_env: Option<String>,
     token_env: Option<String>,
 ) -> Result<Config, String> {
-    let server = server_flag
-        .or(server_env)
-        .map(|s| s.trim().trim_end_matches('/').to_owned())
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| format!("missing server URL: set {SERVER_ENV} or pass --server"))?;
-    let token = token_env
-        .map(|t| t.trim().to_owned())
-        .filter(|t| !t.is_empty())
-        .ok_or_else(|| format!("missing publish token: set {TOKEN_ENV}"))?;
+    let server = resolve_server(server_flag, server_env)?;
+    let token = resolve_token(token_env)?;
     Ok(Config {
         items_url: format!("{server}/items"),
         token,
     })
+}
+
+/// The server URL without a trailing slash; the flag wins over the environment.
+fn resolve_server(flag: Option<String>, env: Option<String>) -> Result<String, String> {
+    flag.or(env)
+        .map(|s| s.trim().trim_end_matches('/').to_owned())
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| format!("missing server URL: set {SERVER_ENV} or pass --server"))
+}
+
+fn resolve_token(env: Option<String>) -> Result<String, String> {
+    env.map(|t| t.trim().to_owned())
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| format!("missing publish token: set {TOKEN_ENV}"))
 }
 
 fn send(config: &Config, envelope: &Envelope) -> Report {
@@ -348,6 +405,7 @@ mod tests {
         let argv = ["os-widget", "publish"].iter().chain(extra);
         Cli::try_parse_from(argv).map(|cli| match cli.command {
             Command::Publish(args) => args,
+            Command::Ingest(_) => unreachable!("publish was asked for"),
         })
     }
 
@@ -589,6 +647,55 @@ mod tests {
         let no_token =
             resolve_config(None, Some("https://env.example".into()), Some(" ".into())).unwrap_err();
         assert!(no_token.contains("OS_WIDGET_PUBLISH_TOKEN"), "{no_token}");
+    }
+
+    fn parse_words(extra: &[&str]) -> Result<WordsArgs, clap::Error> {
+        let argv = ["os-widget", "ingest", "words"].iter().chain(extra);
+        Cli::try_parse_from(argv).map(|cli| match cli.command {
+            Command::Ingest(IngestArgs {
+                command: IngestCommand::Words(args),
+            }) => args,
+            Command::Publish(_) => unreachable!("ingest was asked for"),
+        })
+    }
+
+    #[test]
+    fn ingest_words_defaults_to_the_public_dictionary() {
+        let args = parse_words(&["list.txt"]).unwrap();
+        assert_eq!(args.path, "list.txt");
+        assert_eq!(args.origin, "dictionaryapi.dev");
+        assert_eq!(
+            args.dictionary_url,
+            "https://api.dictionaryapi.dev/api/v2/entries/en"
+        );
+        assert_eq!(args.server, None);
+        assert!(!args.dry_run);
+    }
+
+    #[test]
+    fn ingest_words_takes_stdin_and_every_flag() {
+        let args = parse_words(&[
+            "-",
+            "--origin",
+            "my-list",
+            "--dictionary-url",
+            "http://localhost:9/en",
+            "--server",
+            "https://s.example",
+            "--dry-run",
+        ])
+        .unwrap();
+        assert_eq!(args.path, "-");
+        assert_eq!(args.origin, "my-list");
+        assert_eq!(args.dictionary_url, "http://localhost:9/en");
+        assert_eq!(args.server.as_deref(), Some("https://s.example"));
+        assert!(args.dry_run);
+    }
+
+    #[test]
+    fn ingest_words_needs_a_path_and_has_no_token_flag() {
+        assert!(parse_words(&[]).is_err());
+        assert!(parse_words(&["list.txt", "--token", "secret"]).is_err());
     }
 
     #[test]
