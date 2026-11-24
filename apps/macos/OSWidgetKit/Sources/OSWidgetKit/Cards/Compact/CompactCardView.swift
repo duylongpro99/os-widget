@@ -14,11 +14,12 @@ public struct CompactCardView: View {
         self.lines = lines
     }
 
-    /// Which compact view renders a given content. Unknown content, including kinds without a compact
-    /// view yet such as `vocab`, uses the fallback.
+    /// Which compact view renders a given content. Unknown content, including a `vocab` body that does not
+    /// decode, uses the fallback.
     public enum Variant: Sendable, Hashable {
         case notification
         case generic
+        case vocab
         case fallback
     }
 
@@ -26,7 +27,7 @@ public struct CompactCardView: View {
         switch content {
         case .notification: .notification
         case .generic: .generic
-        case .vocab: .fallback
+        case .vocab: .vocab
         case .unknown: .fallback
         }
     }
@@ -69,6 +70,12 @@ public struct CompactCardView: View {
             CompactNotificationView(item: item, lines: lines)
         case .generic:
             CompactGenericView(item: item, lines: lines)
+        case .vocab:
+            if case .vocab(let vocab) = item.content {
+                CompactVocabView(item: item, vocab: vocab, lines: lines)
+            } else {
+                CompactFallbackView(item: item, lines: lines)
+            }
         case .fallback:
             CompactFallbackView(item: item, lines: lines)
         }

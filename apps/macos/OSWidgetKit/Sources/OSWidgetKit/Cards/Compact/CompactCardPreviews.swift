@@ -24,7 +24,9 @@ private struct CompactPreviewList: View {
 
 #Preview("Compact notification") { CompactCardView(item: CardPreviewSamples.notification).padding().frame(width: 300) }
 #Preview("Compact generic, read") { CompactCardView(item: CardPreviewSamples.generic).padding().frame(width: 300) }
-#Preview("Compact vocab fallback") { CompactCardView(item: CardPreviewSamples.vocab).padding().frame(width: 300) }
+#Preview("Compact vocab, row") { CompactCardView(item: CardPreviewSamples.vocab, lines: 1).padding().frame(width: 300) }
+#Preview("Compact vocab, medium lead") { CompactCardView(item: CardPreviewSamples.vocab, lines: 2).padding().frame(width: 300) }
+#Preview("Compact vocab, large lead") { CompactCardView(item: CardPreviewSamples.vocab, lines: 4).padding().frame(width: 300) }
 #Preview("Compact weather fallback") { CompactCardView(item: weatherSample).padding().frame(width: 300) }
 #Preview("Compact all") { CompactPreviewList() }
 #Preview("Compact all, dark") { CompactPreviewList().preferredColorScheme(.dark) }
