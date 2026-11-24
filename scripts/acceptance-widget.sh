@@ -363,10 +363,10 @@ check_offline() {
   show_on_widget c-offline "$title" || { fail "offline" "the item did not reach the widgets"; return; }
   id="$shown_id"
   echo "TAP: turn Wi-Fi off, click the check mark on '$title' in the widget, wait 10 s, turn Wi-Fi on."
-  echo "waiting up to 10 minutes for the network to drop"
-  deadline=$((SECONDS + 600))
+  echo "waiting up to ${TAP_WAIT_SECONDS:-600} s for the network to drop"
+  deadline=$((SECONDS + ${TAP_WAIT_SECONDS:-600}))
   while server_reachable; do
-    ((SECONDS < deadline)) || { fail "offline" "the server stayed reachable for 10 minutes"; return; }
+    ((SECONDS < deadline)) || { fail "offline" "the server stayed reachable for ${TAP_WAIT_SECONDS:-600} s"; return; }
     sleep 1
   done
   dropped=$(now_stamp)

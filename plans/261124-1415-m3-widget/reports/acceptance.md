@@ -11,7 +11,7 @@ Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `
 | `read` | Lần đầu FAIL: không có lần bấm nào tới nút (xem Phát hiện 1). Chạy lại PASS: intent → rút hộp thư 214 ms → `item.read` seq 478 |
 | `delete` | Lần đầu FAIL: thao tác làm trong danh sách của app, không qua widget (Phát hiện 1). Chạy lại PASS: intent → rút hộp thư 218 ms → `item.deleted` seq 484 |
 | `reload` | PASS: 5 mục trong 3 s → 2 reload cách 5146 ms, timeline cuối đúng mục cuối; vòng sync `new=0` không kèm reload |
-| `offline` (FR-20) | <!-- OFFLINE --> |
+| `offline` (FR-20) | PASS (lượt thứ hai, 17:15–17:16): bấm khi mất mạng → widget mờ ngay, app rút hộp thư khi offline, `sync.queue_sent … 204` 0,4 s sau khi có mạng lại. Lượt đầu (17:02–17:12) hết giờ vì operator chưa tắt mạng |
 | Checklist 1–6 | Đạt (mục 3 và 4 có bằng chứng log, xem bảng checklist) |
 | Checklist 8 (`acceptance-menu-bar.sh 1`, `6`) | PASS, popup `latency_ms=637`; thẻ `vocab` hiện tiêu đề và tóm tắt |
 | Checklist 7 (một đêm) và `day` | Chờ session kết thúc, xem [reload-day.md](./reload-day.md) |
@@ -82,7 +82,27 @@ Chuỗi log của lần bấm đã đọc (16:08), từ extension tới server:
 16:08:20.055 OSWidget       widget.reload n_today=20 reason=trailing gap_ms=5156
 ```
 
-<!-- OFFLINE-OUTPUT -->
+`offline`, lượt đầu 17:02–17:12: `FAIL offline: the server stayed reachable for 10 minutes` (operator chưa làm bước này; mục thử đã xoá). Lượt hai 17:15–17:16 (D26 "A": sẵn sàng), mạng tắt khoảng 20 s:
+
+```text
+offline since 2026-11-24 17:16:01
+log: widget.intent action=read id=d8a20c75-… -> widget.inbox_drained count=1
+queue_sent before the network came back: none
+online again at 2026-11-24 17:16:19
+PASS offline tap drained while offline, read_at 2026-11-24T10:16:17.846+00:00 on the server after reconnect (sync.queue_sent id=d8a20c75-… status=204)
+```
+
+```text
+17:15:57.123 OSWidget       realtime.state send_failed
+17:16:02.606 OSWidgetWidget widget.intent action=read id=d8a20c75-…
+17:16:02.643 OSWidgetWidget widget.timeline family=large items=1 unread=0 top=d8a20c75-…
+17:16:02.646 OSWidget       sync.retry in=2s reason=network
+17:16:02.822 OSWidget       widget.inbox_drained count=1
+17:16:07.009 OSWidget       sync.retry in=8s reason=network
+17:16:15.569 OSWidget       sync.retry in=16s reason=network
+17:16:17.685 OSWidget       sync.start
+17:16:18.118 OSWidget       sync.queue_sent id=d8a20c75-… status=204
+```
 
 ## Checklist của operator
 
