@@ -54,7 +54,7 @@ fn parse_batch(bytes: &[u8]) -> std::result::Result<Batch, Invalid> {
     };
 
     let origin = match object.get("origin") {
-        Some(Value::String(s)) if !s.trim().is_empty() => s,
+        Some(Value::String(s)) if !s.trim().is_empty() => s.trim(),
         _ => return Err(Invalid::new("origin", "must be a non-empty string")),
     };
     if origin.chars().count() > MAX_ORIGIN_CHARS {
@@ -84,7 +84,7 @@ fn parse_batch(bytes: &[u8]) -> std::result::Result<Batch, Invalid> {
         );
     }
     Ok(Batch {
-        origin: origin.clone(),
+        origin: origin.to_owned(),
         words,
     })
 }
@@ -210,6 +210,8 @@ mod tests {
         let missing = serde_json::to_vec(&json!({ "words": [word("a")] })).unwrap();
         assert_eq!(parse_batch(&missing).unwrap_err().field, "origin");
         assert!(parse_batch(&batch(json!("é".repeat(200)), json!([word("a")]))).is_ok());
+        let padded = parse_batch(&batch(json!("  book.txt \n"), json!([word("a")]))).unwrap();
+        assert_eq!(padded.origin, "book.txt");
         let err = parse_batch(&batch(json!("é".repeat(201)), json!([word("a")]))).unwrap_err();
         assert_eq!(err.field, "origin");
     }
