@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let env = AppEnvironment.live()
         SyncWiring.start(env: env)
+        WidgetWiring.start(env: env)
         let menuBar = MenuBarController(env: env)
         popup = PopupController(
             env: env,
