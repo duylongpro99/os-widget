@@ -3,17 +3,21 @@
 //! `words` looks each word up in the Free Dictionary API, drops the ones the API
 //! cannot complete, and sends the rest in batches to `POST /vocab/words`. Words
 //! stored by an earlier batch stay stored when a later one fails; ingesting again
-//! is safe because the server upserts.
+//! is safe because the server upserts. `book` picks the words and their context
+//! sentences from a plain-text book, then goes through the same lookup and batches.
 
+pub mod book;
 pub mod dictionary;
+mod stopwords;
 
+use std::collections::HashMap;
 use std::io::Write;
 use std::time::Duration;
 
 use envelope::VocabBody;
 use serde_json::{Value, json};
 
-use crate::{Report, WordsArgs, read_input, resolve_server, resolve_token, snippet};
+use crate::{BookArgs, Report, WordsArgs, read_input, resolve_server, resolve_token, snippet};
 use dictionary::{Dictionary, Fetched};
 
 pub const DEFAULT_ORIGIN: &str = "dictionaryapi.dev";
@@ -93,54 +97,27 @@ fn post_batch(target: &Target, origin: &str, batch: &[VocabBody]) -> Result<u64,
 /// Turns the server's answer to `POST /vocab/words` into a stored count, or the
 /// report to exit with.
 fn interpret_batch_response(status: u16, body: &str) -> Result<u64, Report> {
-    let json: Option<Value> = serde_json::from_str(body).ok();
-    let text = |key: &str| {
-        json.as_ref()
-            .and_then(|v| v.get(key))
-            .and_then(Value::as_str)
-            .map(str::to_owned)
-    };
-    let invalid = |detail: String| Report {
-        stdout: None,
-        stderr: Some(format!("invalid vocab: {detail}")),
-        code: crate::EXIT_INVALID,
-    };
-
-    match status {
-        200 => json
-            .as_ref()
-            .and_then(|v| v.get("stored"))
-            .and_then(Value::as_u64)
-            .ok_or_else(|| {
-                Report::failure(format!(
-                    "HTTP 200: response has no stored count: {}",
-                    snippet(body)
-                ))
-            }),
-        400 => Err(match (text("field"), text("message")) {
-            (Some(field), Some(message)) if !field.is_empty() => {
-                invalid(format!("{field}: {message}"))
-            }
-            (_, Some(message)) => invalid(message),
-            _ => invalid(format!("HTTP 400: {}", snippet(body))),
-        }),
-        _ => {
-            let reason = text("error").unwrap_or_else(|| snippet(body));
-            let hint = match status {
-                401 => format!(" (check {})", crate::TOKEN_ENV),
-                403 => format!(" ({} is not a publish token)", crate::TOKEN_ENV),
-                _ => String::new(),
-            };
-            Err(Report::failure(format!("HTTP {status}: {reason}{hint}")))
-        }
+    if status != 200 {
+        return Err(crate::error_report("vocab", status, body));
     }
+    serde_json::from_str::<Value>(body)
+        .ok()
+        .and_then(|v| v.get("stored").and_then(Value::as_u64))
+        .ok_or_else(|| {
+            Report::failure(format!(
+                "HTTP 200: response has no stored count: {}",
+                snippet(body)
+            ))
+        })
 }
 
 /// Looks every word up, reports each on `progress`, and sends the valid ones
-/// unless `target` is `None` (a dry run).
+/// unless `target` is `None` (a dry run). A word with an entry in `contexts` is
+/// stored with that sentence as its context.
 fn run_words<F, S>(
     list: &WordList,
     dictionary: &mut Dictionary<F, S>,
+    contexts: &HashMap<String, String>,
     origin: &str,
     target: Option<&Target>,
     progress: &mut dyn Write,
@@ -167,20 +144,20 @@ where
             .lookup(word)
             .and_then(|json| dictionary::map_entry(word, &json));
         match looked_up {
-            Ok(body) => {
-                let _ = writeln!(progress, "ok {word}");
-                sink.pending.push(body);
+            Ok(mut body) => {
+                body.context = contexts.get(word).cloned();
+                sink.pending.push((word.clone(), body));
             }
             Err(reason) => {
                 let _ = writeln!(progress, "skip {word} {reason}");
                 skipped += 1;
             }
         }
-        if let Err(failed) = flush(&mut sink, BATCH_SIZE) {
+        if let Err(failed) = flush(&mut sink, BATCH_SIZE, progress) {
             return with_summary(failed, sink.stored, skipped);
         }
     }
-    if let Err(failed) = flush(&mut sink, 1) {
+    if let Err(failed) = flush(&mut sink, 1, progress) {
         return with_summary(failed, sink.stored, skipped);
     }
 
@@ -204,23 +181,29 @@ struct Sink<'a> {
     origin: &'a str,
     /// `None` in a dry run.
     target: Option<&'a Target>,
-    pending: Vec<VocabBody>,
+    /// Looked-up words with their bodies; reported `ok` once their batch is out.
+    pending: Vec<(String, VocabBody)>,
     /// Every body of a dry run, kept for printing.
     dry_run_bodies: Vec<VocabBody>,
     stored: u64,
 }
 
 /// Sends the pending words once there are at least `min` of them (or, in a dry
-/// run, sets them aside for printing).
-fn flush(sink: &mut Sink, min: usize) -> Result<(), Report> {
+/// run, sets them aside for printing) and reports each as `ok` only after that
+/// succeeded, so a failed batch leaves no word reported as stored.
+fn flush(sink: &mut Sink, min: usize, progress: &mut dyn Write) -> Result<(), Report> {
     if sink.pending.is_empty() || sink.pending.len() < min {
         return Ok(());
     }
+    let (words, bodies): (Vec<String>, Vec<VocabBody>) =
+        std::mem::take(&mut sink.pending).into_iter().unzip();
     match sink.target {
-        Some(target) => sink.stored += post_batch(target, sink.origin, &sink.pending)?,
-        None => sink.dry_run_bodies.append(&mut sink.pending),
+        Some(target) => sink.stored += post_batch(target, sink.origin, &bodies)?,
+        None => sink.dry_run_bodies.extend(bodies),
     }
-    sink.pending.clear();
+    for word in words {
+        let _ = writeln!(progress, "ok {word}");
+    }
     Ok(())
 }
 
@@ -230,37 +213,61 @@ fn with_summary(mut failed: Report, stored: u64, skipped: usize) -> Report {
     failed
 }
 
+/// The origin to store with each word, or the report to exit with when the
+/// server would refuse it.
+fn check_origin(origin: &str) -> Result<&str, Report> {
+    let origin = origin.trim();
+    if origin.is_empty() || origin.chars().count() > MAX_ORIGIN_CHARS {
+        return Err(Report::rejected(
+            "vocab",
+            format!("origin: must be 1 to {MAX_ORIGIN_CHARS} characters"),
+        ));
+    }
+    Ok(origin)
+}
+
+/// Where to send batches: `None` for a dry run, which needs neither a server nor
+/// a token.
+fn resolve_target(server_flag: Option<String>, dry_run: bool) -> Result<Option<Target>, Report> {
+    if dry_run {
+        return Ok(None);
+    }
+    let server = resolve_server(server_flag, std::env::var(crate::SERVER_ENV).ok());
+    let token = resolve_token(std::env::var(crate::TOKEN_ENV).ok());
+    match (server, token) {
+        (Ok(server), Ok(token)) => Ok(Some(Target {
+            words_url: format!("{server}/vocab/words"),
+            token,
+        })),
+        (Err(message), _) | (_, Err(message)) => Err(Report::failure(message)),
+    }
+}
+
+/// Reads a UTF-8 text file, or stdin for `-`. Text that is not UTF-8 exits with
+/// `encoding_exit`; a file that cannot be read exits 1.
+fn read_text(path: &str, encoding_exit: u8) -> Result<String, Report> {
+    let bytes =
+        read_input(path).map_err(|e| Report::failure(format!("cannot read {path}: {e}")))?;
+    String::from_utf8(bytes).map_err(|_| Report {
+        stdout: None,
+        stderr: Some(format!("{path} is not valid UTF-8 text")),
+        code: encoding_exit,
+    })
+}
+
 /// `os-widget ingest words`.
 pub fn words(args: WordsArgs) -> Report {
-    let origin = args.origin.trim();
-    if origin.is_empty() || origin.chars().count() > MAX_ORIGIN_CHARS {
-        return Report {
-            stdout: None,
-            stderr: Some(format!(
-                "invalid vocab: origin: must be 1 to {MAX_ORIGIN_CHARS} characters"
-            )),
-            code: crate::EXIT_INVALID,
-        };
-    }
-    let target = if args.dry_run {
-        None
-    } else {
-        let server = resolve_server(args.server.clone(), std::env::var(crate::SERVER_ENV).ok());
-        let token = resolve_token(std::env::var(crate::TOKEN_ENV).ok());
-        match (server, token) {
-            (Ok(server), Ok(token)) => Some(Target {
-                words_url: format!("{server}/vocab/words"),
-                token,
-            }),
-            (Err(message), _) | (_, Err(message)) => return Report::failure(message),
-        }
+    let origin = match check_origin(&args.origin) {
+        Ok(origin) => origin,
+        Err(report) => return report,
     };
-    let text = match read_input(&args.path) {
-        Ok(bytes) => match String::from_utf8(bytes) {
-            Ok(text) => text,
-            Err(_) => return Report::failure(format!("{} is not valid UTF-8 text", args.path)),
-        },
-        Err(e) => return Report::failure(format!("cannot read {}: {e}", args.path)),
+    let target = match resolve_target(args.server.clone(), args.dry_run) {
+        Ok(target) => target,
+        Err(report) => return report,
+    };
+    let text = match read_text(&args.path, crate::EXIT_FAILURE) {
+        Ok(text) => text,
+        Err(report) => return report,
     };
 
     let list = parse_word_list(&text);
@@ -268,10 +275,73 @@ pub fn words(args: WordsArgs) -> Report {
     run_words(
         &list,
         &mut dictionary,
+        &HashMap::new(),
         origin,
         target.as_ref(),
         &mut std::io::stderr(),
     )
+}
+
+/// `os-widget ingest book`.
+pub fn book(args: BookArgs) -> Report {
+    let origin = match check_origin(&args.origin) {
+        Ok(origin) => origin,
+        Err(report) => return report,
+    };
+    // `--dry-run` alone never reaches the network, so it needs no server or token.
+    let sends = !args.dry_run;
+    let target = match resolve_target(args.server.clone(), !sends) {
+        Ok(target) => target,
+        Err(report) => return report,
+    };
+    let text = match read_text(&args.path, crate::EXIT_INVALID) {
+        Ok(text) => text,
+        Err(report) => return report,
+    };
+
+    let found = book::candidates(&text, args.min_length, args.max);
+    if args.dry_run && !args.lookup {
+        let listed: Vec<Value> = found
+            .iter()
+            .map(|c| json!({ "word": c.word, "context": c.context }))
+            .collect();
+        return Report {
+            stdout: Some(serde_json::to_string_pretty(&listed).unwrap_or_else(|_| "[]".into())),
+            stderr: Some(format!("dry run: {} candidate words", found.len())),
+            code: 0,
+        };
+    }
+    let mut dictionary = dictionary::http(&args.dictionary_url);
+    run_candidates(
+        found,
+        &mut dictionary,
+        origin,
+        target.as_ref(),
+        &mut std::io::stderr(),
+    )
+}
+
+/// Looks the chosen words up and stores them with their context sentences. A
+/// word the dictionary cannot complete is skipped, so a sentence is never sent
+/// without the rest of its entry.
+fn run_candidates<F, S>(
+    found: Vec<book::Candidate>,
+    dictionary: &mut Dictionary<F, S>,
+    origin: &str,
+    target: Option<&Target>,
+    progress: &mut dyn Write,
+) -> Report
+where
+    F: FnMut(&str) -> Fetched,
+    S: FnMut(Duration),
+{
+    let list = WordList {
+        words: found.iter().map(|c| c.word.clone()).collect(),
+        rejected: Vec::new(),
+    };
+    let contexts: HashMap<String, String> =
+        found.into_iter().map(|c| (c.word, c.context)).collect();
+    run_words(&list, dictionary, &contexts, origin, target, progress)
 }
 
 #[cfg(test)]
@@ -537,6 +607,7 @@ mod tests {
         let report = run_words(
             &list,
             &mut dictionary,
+            &HashMap::new(),
             DEFAULT_ORIGIN,
             send.then_some(&target),
             &mut progress,
@@ -556,7 +627,7 @@ mod tests {
         assert_eq!(report.stdout.as_deref(), Some("stored 4, skipped 1"));
         assert_eq!(
             progress,
-            "ok serendipity\nok candid\nskip resilient missing ipa\nok wandered\nok benevolent\n"
+            "skip resilient missing ipa\nok serendipity\nok candid\nok wandered\nok benevolent\n"
         );
         let posts = server.posts();
         assert_eq!(posts.len(), 1);
@@ -707,5 +778,205 @@ mod tests {
         assert_eq!(report.code, 1);
         assert_eq!(report.stdout.as_deref(), Some("stored 25, skipped 0"));
         assert!(report.stderr.unwrap().starts_with("HTTP 500"));
+    }
+
+    #[test]
+    fn a_word_is_reported_ok_only_after_its_batch_is_stored() {
+        let count = Arc::new(Mutex::new(0));
+        let c = count.clone();
+        let server = FakeServer::start(move |r| {
+            if r.method == "POST" {
+                let mut n = c.lock().unwrap();
+                *n += 1;
+                return if *n == 1 {
+                    (200, r#"{"stored":25}"#.into())
+                } else {
+                    (500, "boom".into())
+                };
+            }
+            (200, json!([{ "phonetic": "/x/", "meanings": [{ "partOfSpeech": "noun", "definitions": [{ "definition": "d" }] }] }]).to_string())
+        });
+        let (report, progress) = run(&server, &distinct_words(30), true);
+
+        assert_eq!(report.code, 1);
+        let ok: Vec<&str> = progress.lines().filter(|l| l.starts_with("ok ")).collect();
+        assert_eq!(ok.len(), 25, "{progress}");
+        // The last five words were in the batch the server refused.
+        for refused in ["waz", "wba", "wbb", "wbc", "wbd"] {
+            assert!(!progress.contains(&format!("ok {refused}")), "{progress}");
+        }
+        assert!(
+            ok.contains(&"ok waa") && ok.contains(&"ok way"),
+            "{progress}"
+        );
+    }
+
+    // --- books ---
+
+    const SAMPLE_BOOK: &str = include_str!("../../tests/fixtures/book/sample.txt");
+
+    fn run_book(server: &FakeServer, text: &str, send: bool) -> (Report, String) {
+        let found = book::candidates(text, 5, 50);
+        let mut dictionary = Dictionary::new(
+            &format!("{}/dict", server.url),
+            dictionary::http_fetch(),
+            |_| {},
+        );
+        let target = Target {
+            words_url: format!("{}/vocab/words", server.url),
+            token: "secret-token".into(),
+        };
+        let mut progress = Vec::new();
+        let report = run_candidates(
+            found,
+            &mut dictionary,
+            "A Small Sample",
+            send.then_some(&target),
+            &mut progress,
+        );
+        (report, String::from_utf8(progress).unwrap())
+    }
+
+    #[test]
+    fn book_words_are_sent_with_the_sentence_taken_from_the_book() {
+        let server = worker_and_dictionary(200, None);
+        let (report, _) = run_book(&server, SAMPLE_BOOK, true);
+
+        assert_eq!(report.code, 0, "{report:?}");
+        // The dictionary has no IPA for `lanterns`, so that word is not stored.
+        assert_eq!(report.stdout.as_deref(), Some("stored 6, skipped 1"));
+        let posts = server.posts();
+        assert_eq!(posts.len(), 1);
+        let sent: Value = serde_json::from_str(&posts[0].body).unwrap();
+        assert_eq!(sent["origin"], "A Small Sample");
+        let words = sent["words"].as_array().unwrap();
+        let contexts: Vec<(&str, &str)> = words
+            .iter()
+            .map(|w| (w["word"].as_str().unwrap(), w["context"].as_str().unwrap()))
+            .collect();
+        assert_eq!(contexts.len(), 6);
+        assert!(contexts.contains(&(
+            "gardens",
+            "Gardens grew behind the fish market, and the gardens were full of wet green leaves."
+        )));
+        assert!(!contexts.iter().any(|(word, _)| *word == "lanterns"));
+        for word in words {
+            envelope::parse_vocab(word).unwrap();
+        }
+    }
+
+    #[test]
+    fn a_book_word_the_dictionary_cannot_complete_is_skipped_not_sent_alone() {
+        let server = worker_and_dictionary(200, None);
+        let text = "The unknownword rose slowly. The unknownword fell again. \
+                    The gardens grew behind the market. The gardens were wet.";
+        let (report, progress) = run_book(&server, text, true);
+
+        assert_eq!(report.stdout.as_deref(), Some("stored 1, skipped 1"));
+        assert!(
+            progress.contains("skip unknownword not found"),
+            "{progress}"
+        );
+        let sent: Value = serde_json::from_str(&server.posts()[0].body).unwrap();
+        let words: Vec<&str> = sent["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|w| w["word"].as_str().unwrap())
+            .collect();
+        assert_eq!(words, ["gardens"]);
+    }
+
+    #[test]
+    fn a_book_dry_run_with_lookup_prints_bodies_with_context_and_never_posts() {
+        let server = worker_and_dictionary(200, None);
+        let (report, _) = run_book(&server, SAMPLE_BOOK, false);
+
+        assert_eq!(report.code, 0);
+        let bodies: Value = serde_json::from_str(report.stdout.as_deref().unwrap()).unwrap();
+        let bodies = bodies.as_array().unwrap();
+        assert_eq!(bodies.len(), 6);
+        assert!(
+            bodies
+                .iter()
+                .all(|b| !b["context"].as_str().unwrap().is_empty())
+        );
+        assert_eq!(
+            report.stderr.as_deref(),
+            Some("dry run: would store 6, skipped 1")
+        );
+        assert!(server.posts().is_empty());
+    }
+
+    #[test]
+    fn a_dry_run_without_lookup_lists_words_and_contexts_and_calls_nothing() {
+        let path = format!(
+            "{}/tests/fixtures/book/sample.txt",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let report = book(BookArgs {
+            path,
+            origin: "A Small Sample".into(),
+            max: 2,
+            min_length: 5,
+            // Nothing listens here: a request would fail the run.
+            dictionary_url: "http://127.0.0.1:9/en".into(),
+            server: None,
+            dry_run: true,
+            lookup: false,
+        });
+
+        assert_eq!(report.code, 0, "{report:?}");
+        let listed: Value = serde_json::from_str(report.stdout.as_deref().unwrap()).unwrap();
+        assert_eq!(listed.as_array().unwrap().len(), 2);
+        assert_eq!(listed[0]["word"], "harbours");
+        assert!(
+            listed[1]["context"]
+                .as_str()
+                .unwrap()
+                .starts_with("The lanterns swayed")
+        );
+        assert_eq!(report.stderr.as_deref(), Some("dry run: 2 candidate words"));
+    }
+
+    fn book_args(path: &str, origin: &str) -> BookArgs {
+        BookArgs {
+            path: path.into(),
+            origin: origin.into(),
+            max: 50,
+            min_length: 5,
+            dictionary_url: "http://127.0.0.1:9/en".into(),
+            server: None,
+            dry_run: true,
+            lookup: false,
+        }
+    }
+
+    #[test]
+    fn a_book_that_is_not_utf8_exits_2_and_says_so() {
+        let dir = std::env::temp_dir().join(format!("os-widget-book-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("latin1.txt");
+        std::fs::write(&path, b"caf\xe9 caf\xe9 caf\xe9").unwrap();
+
+        let report = book(book_args(path.to_str().unwrap(), "x"));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert_eq!(report.code, 2);
+        assert!(
+            report.stderr.unwrap().contains("not valid UTF-8"),
+            "names the problem"
+        );
+    }
+
+    #[test]
+    fn a_missing_book_exits_1_and_a_bad_origin_exits_2_before_reading() {
+        let missing = book(book_args("/nonexistent/book.txt", "x"));
+        assert_eq!(missing.code, 1);
+        assert!(missing.stderr.unwrap().contains("cannot read"));
+
+        let blank = book(book_args("/nonexistent/book.txt", "  "));
+        assert_eq!(blank.code, 2);
+        assert!(blank.stderr.unwrap().starts_with("invalid vocab: origin"));
     }
 }
