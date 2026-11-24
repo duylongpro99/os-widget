@@ -91,8 +91,8 @@ Thêm: `swift test` của `OSWidgetKit` pass (127 test cũ cộng test mới); `
 |---|-------|--------|---|---|
 | 1 | [Widget extension target, ký và điểm nối](./phase-01-widget-target-va-diem-noi.md) | Completed | Không | Có (ký, entitlement) |
 | 2 | [Đọc kho, snapshot và hộp thư thao tác](./phase-02-snapshot-va-hop-thu-thao-tac.md) | Completed | Không | Có (vị trí hộp thư) |
-| 3 | [Chính sách reload và đếm reload](./phase-03-chinh-sach-reload-va-dem.md) | Pending | 1, 2 | Không |
-| 4 | [Giao diện widget và bố cục rút gọn theo loại](./phase-04-giao-dien-widget-va-bo-cuc-rut-gon.md) | Pending | 1, 2 | Có (nguồn dữ liệu provider) |
+| 3 | [Chính sách reload và đếm reload](./phase-03-chinh-sach-reload-va-dem.md) | Completed | 1, 2 | Không |
+| 4 | [Giao diện widget và bố cục rút gọn theo loại](./phase-04-giao-dien-widget-va-bo-cuc-rut-gon.md) | Completed | 1, 2 | Có (nguồn dữ liệu provider) |
 | 5 | [Nút đã đọc và xoá, app nhận thao tác](./phase-05-nut-da-doc-xoa-va-nhan-thao-tac.md) | Pending | 1, 2, 4 | Có (đường gửi thao tác) |
 | 6 | [Cài, nghiệm thu, đếm một ngày và tài liệu](./phase-06-nghiem-thu-va-tai-lieu.md) | Pending | 1–5 | Có (cách cài) |
 
@@ -155,21 +155,40 @@ Thứ tự: Phase 1 và 2 chạy song song (1 chỉ sửa project và tạo khun
 
 ## Câu hỏi cần operator trả lời
 
-Gửi qua session giám sát `supervisor-project` ngày 2026-11-24. Chưa có câu trả lời; cook theo đề xuất trừ khi operator trả lời khác.
+Gửi qua session giám sát `supervisor-project` ngày 2026-11-24. Trạng thái từng câu ghi ở cột cuối; câu trả lời nguyên văn ở mục "Operator answers".
 
 | # | Câu hỏi | Đề xuất | Phase bị ảnh hưởng | Trạng thái |
 |---|---|---|---|---|
-| 1 | Ngưỡng nào cho "số lần làm mới trong một ngày dùng thật nằm dưới mức đo được ở thử nghiệm B"? B chỉ đo reload khi app ở foreground (được miễn ngân sách) và không đo ngân sách nền; ước lượng không chính thức là 40–70 lần mỗi ngày. | Đạt khi trong 24 giờ dùng thật: app yêu cầu không quá 40 lần (mức thấp của ước lượng), không hai yêu cầu nào cách nhau dưới 5 s, và ít nhất 95% yêu cầu có timeline chạy trong 5 s. Vượt 40 thì ghi số đo và đề xuất ở Phase 6, không tự sửa. | 3, 6 | Chờ |
-| 2 | Mỗi cỡ widget hiện bao nhiêu mục? | Cỡ vừa 3 mục, cỡ lớn 6 mục (mục đầu cao hơn để để chỗ cho thẻ `vocab` rút gọn ở Giai đoạn 4). Đầu widget có số mục chưa đọc. | 2, 3, 4 | Chờ |
-| 3 | Widget hiện cả mục đã đọc hay chỉ mục chưa đọc? | Hiện cả hai, mục đã đọc làm mờ, giống danh sách (FR-9, FR-11 "các mục mới nhất"). Chỉ hiện chưa đọc thì widget hay trống và mục vừa bấm đã đọc biến mất khỏi widget. | 2, 4 | Chờ |
-| 4 | Nút trên mỗi hàng: luôn hiện hay chỉ một nút? | Luôn hiện hai biểu tượng nhỏ ở cuối hàng: dấu tích (chỉ khi chưa đọc) và thùng rác. Widget macOS không có trạng thái hover nên không ẩn được tới khi rê chuột. | 4, 5 | Chờ |
-| 5 | Bấm vào thân một mục trong widget (ngoài hai nút) thì làm gì? | Không làm gì trong M3 (PRD chỉ yêu cầu nút đã đọc và xoá). Mở liên kết hay mở danh sách cần URL scheme cho app và quyết định có đánh dấu đã đọc không; để Giai đoạn 5 nếu cần. | 4 | Chờ |
-| 6 | Cài lại `OSWidget` (thay bản M2 trong `/Applications`, nay có widget nhúng) trước ngày kiểm A ngày 8 (2026-11-30) được không? Cài lại đặt lại "đồng hồ 7 ngày" của riêng OSWidget. | Được. Kết luận A lấy từ WidgetProbe (không bị đụng), không từ OSWidget. Ghi ngày cài mới vào báo cáo để lần kiểm sau đếm từ ngày đó. | 6 | Chờ |
-| 7 | Đóng M3 có phải chờ đủ 24 giờ đếm reload không? | Có, vì đó là một điều kiện hoàn thành. Bắt đầu đếm ngay sau khi cài ở Phase 6 để chạy song song với các kiểm khác; trong 24 giờ đó operator dùng máy bình thường, để widget trên desktop, cho máy ngủ qua đêm. | 6 | Chờ |
+| 1 | Ngưỡng nào cho "số lần làm mới trong một ngày dùng thật nằm dưới mức đo được ở thử nghiệm B"? B chỉ đo reload khi app ở foreground (được miễn ngân sách) và không đo ngân sách nền; ước lượng không chính thức là 40–70 lần mỗi ngày. | Đạt khi trong 24 giờ dùng thật: app yêu cầu không quá 40 lần (mức thấp của ước lượng), không hai yêu cầu nào cách nhau dưới 5 s, và ít nhất 95% yêu cầu có timeline chạy trong 5 s. Vượt 40 thì ghi số đo và đề xuất ở Phase 6, không tự sửa. | 3, 6 | Đã trả lời (D9, 2026-11-24 14:24): A |
+| 2 | Mỗi cỡ widget hiện bao nhiêu mục? | Cỡ vừa 3 mục, cỡ lớn 6 mục (mục đầu cao hơn để để chỗ cho thẻ `vocab` rút gọn ở Giai đoạn 4). Đầu widget có số mục chưa đọc. | 2, 3, 4 | Đã quyết (giám sát, 2026-11-24 14:3x): cỡ vừa 3 mục, cỡ lớn 6 mục (hàng đầu cao hơn), số chưa đọc ở đầu |
+| 3 | Widget hiện cả mục đã đọc hay chỉ mục chưa đọc? | Hiện cả hai, mục đã đọc làm mờ, giống danh sách (FR-9, FR-11 "các mục mới nhất"). Chỉ hiện chưa đọc thì widget hay trống và mục vừa bấm đã đọc biến mất khỏi widget. | 2, 4 | Đã quyết (giám sát, 2026-11-24 14:3x): hiện cả mục đã đọc, làm mờ |
+| 4 | Nút trên mỗi hàng: luôn hiện hay chỉ một nút? | Luôn hiện hai biểu tượng nhỏ ở cuối hàng: dấu tích (chỉ khi chưa đọc) và thùng rác. Widget macOS không có trạng thái hover nên không ẩn được tới khi rê chuột. | 4, 5 | Đã quyết (giám sát, 2026-11-24 14:3x): luôn hiện dấu tích (chỉ hàng chưa đọc) và thùng rác |
+| 5 | Bấm vào thân một mục trong widget (ngoài hai nút) thì làm gì? | Không làm gì trong M3 (PRD chỉ yêu cầu nút đã đọc và xoá). Mở liên kết hay mở danh sách cần URL scheme cho app và quyết định có đánh dấu đã đọc không; để Giai đoạn 5 nếu cần. | 4 | Đã quyết (giám sát, 2026-11-24 14:3x): bấm thân hàng không làm gì trong M3 |
+| 6 | Cài lại `OSWidget` (thay bản M2 trong `/Applications`, nay có widget nhúng) trước ngày kiểm A ngày 8 (2026-11-30) được không? Cài lại đặt lại "đồng hồ 7 ngày" của riêng OSWidget. | Được. Kết luận A lấy từ WidgetProbe (không bị đụng), không từ OSWidget. Ghi ngày cài mới vào báo cáo để lần kiểm sau đếm từ ngày đó. | 6 | Đã trả lời (D10, 2026-11-24 14:24): A (cài lại OSWidget trước 2026-11-30 chỉ ở Phase 6) |
+| 7 | Đóng M3 có phải chờ đủ 24 giờ đếm reload không? | Có, vì đó là một điều kiện hoàn thành. Bắt đầu đếm ngay sau khi cài ở Phase 6 để chạy song song với các kiểm khác; trong 24 giờ đó operator dùng máy bình thường, để widget trên desktop, cho máy ngủ qua đêm. | 6 | Đã trả lời (D11, 2026-11-24 14:24): A (M3 đóng sau khi đủ 24 giờ đếm) |
 
 ## Operator answers
 
-Chưa có.
+Ngưỡng đếm reload của câu 1 (D9): trong 24 giờ có tối đa 40 yêu cầu reload từ app, không hai yêu cầu nào cách nhau dưới 5 s, và ít nhất 95% yêu cầu có timeline chạy trong 5 s. Script đếm kết luận đạt hay trượt theo ngưỡng này.
+
+Ghi lại từ file ledger của operator, mỗi câu trả lời nguyên văn là "A" (2026-11-24 14:24, múi giờ Asia/Saigon):
+
+| Quyết định | Câu hỏi | Trả lời (nguyên văn) |
+|---|---|---|
+| D9 | 1 | A |
+| D10 | 6 | A |
+| D11 | 7 | A |
+
+Quyết định của giám sát cho các câu thiết kế (2026-11-24 14:3x, cuối cùng cho phase này; không phải câu trả lời của operator):
+
+| Câu | Quyết định |
+|---|---|
+| 2 | Cỡ vừa hiện 3 mục, cỡ lớn 6 mục (hàng đầu cao hơn); số chưa đọc ở đầu widget |
+| 3 | Hiện cả mục đã đọc, làm mờ |
+| 4 | Luôn hiện dấu tích (chỉ hàng chưa đọc) và thùng rác |
+| 5 | Bấm thân hàng không làm gì trong M3 |
+
+Quyết định của giám sát (15:1x): snapshot chỉ khác ở số chưa đọc (một mục ngoài các hàng đang hiện được đọc) vẫn là thay đổi nội dung thật và kích hoạt reload.
 
 ## Validation Log
 
