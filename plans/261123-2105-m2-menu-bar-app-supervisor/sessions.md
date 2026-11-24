@@ -14,7 +14,9 @@ Order: p01 → p02 → (p03, p04, p05 in parallel per file-ownership table) → 
 
 | Name | Kind | Pane / PID | Skill | Brief | Status | Result commit |
 |---|---|---|---|---|---|---|
-| pending-watch | process | PID 27008 | — | — | running | — |
+| pending-watch | process | PID 27008 | — | — | closed 21:5x | — |
+| pending-watch | process | PID 97608 | — | — | exited (user-edit) 22:4x | — |
+| pending-watch | process | PID 9180 | — | — | exited (user-edit) 23:0x | — |
 | m2-menu-bar-app-p01-cook | session | wC:pJ3 | /ak-cook | briefs/m2-menu-bar-app-p01-cook.md | done_with_concerns, verified, stopped 21:13 | branch macos-app-project 57cc98c |
 | m2-menu-bar-app-p01-review | session | wC:pJ4 | /ak-code-review | briefs/m2-menu-bar-app-p01-review.md | done, verified, stopped 21:3x | merge 79dd8f3 (fixes 15e0216 2a970a7 2d47b04 311b672), status 037309e |
 | m2-menu-bar-app-p02-cook | session | wC:pJ5 | /ak-cook | briefs/m2-menu-bar-app-p02-cook.md | done, verified, stopped 21:27 | branch macos-local-store 7c56a6b |
@@ -25,3 +27,9 @@ Order: p01 → p02 → (p03, p04, p05 in parallel per file-ownership table) → 
 | m2-menu-bar-app-p04-review | session | wC:pJA | /ak-code-review | briefs/m2-menu-bar-app-p04-review.md | done, verified (59 tests), stopped | merge d8c6733 (fixes 16913d2 c8f3606), status 47c2af8 |
 | m2-menu-bar-app-p05-review | session | wC:pJB | /ak-code-review | briefs/m2-menu-bar-app-p05-review.md | done, verified (78 tests), stopped | merge 037e9eb (integration 94bf789), status b25df53 |
 | m2-menu-bar-app-p03-review | session | wC:pJC | /ak-code-review | briefs/m2-menu-bar-app-p03-review.md | done, verified (122 tests), stopped | merge cb824ee (fix c289e4f), status a698cf6 |
+| m2-menu-bar-app-p06-cook | session | wC:pJD | /ak-cook | briefs/m2-menu-bar-app-p06-cook.md | done, verified (focus PASS, server 8/8), stopped 09:3x | head cef292c (78f1f09, 804e582, d3d7d6f, 390ca77) |
+| m2-menu-bar-app-p06-review | session | wC:pJF | /ak-code-review | briefs/m2-menu-bar-app-p06-review.md | done, verified (127 tests, D5 re-check pass), stopped | fix d9e8118, docs 5c5e815, merge 307f115, status 05df373 |
+| pending-watch | process | PID 9722 | — | — | exited (user-edit, D2 answered) | — |
+| pending-watch | process | PID 12829 | — | — | exited (user-edit, D4) | — |
+| pending-watch | process | PID 42279 | — | — | exited (user-edit) | — |
+| pending-watch | process | PID 53554 | — | — | closed 09:4x (pending-watch close) | — |
