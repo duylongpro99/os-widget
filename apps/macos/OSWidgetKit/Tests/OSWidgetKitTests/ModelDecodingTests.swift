@@ -51,10 +51,13 @@ struct ModelDecodingTests {
         ]))
     }
 
-    @Test func vocabIsUnknownButKeepsTitleAndSummary() throws {
+    @Test func vocabDecodesAndKeepsTitleAndSummary() throws {
         let item = try item("1c9f3a72-4d5e-4f60-9bac-2d3e4f5a6b71", in: Fixture.items())
         #expect(item.kind == "vocab")
-        #expect(item.content == .unknown)
+        guard case .vocab = item.content else {
+            Issue.record("expected vocab content, got \(item.content)")
+            return
+        }
         #expect(item.title == "serendipity")
         #expect(item.summary == "(n.) sự tình cờ may mắn")
         #expect(item.body?["word"]?.stringValue == "serendipity")

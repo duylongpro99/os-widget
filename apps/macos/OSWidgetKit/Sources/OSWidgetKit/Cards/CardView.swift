@@ -28,6 +28,7 @@ public struct CardView: View {
         switch content {
         case .notification: .notification
         case .generic: .generic
+        case .vocab: .fallback
         case .unknown: .fallback
         }
     }
@@ -39,7 +40,7 @@ public struct CardView: View {
                 NotificationCardView(item: item, text: text)
             case .generic(let blocks):
                 GenericCardView(item: item, blocks: blocks)
-            case .unknown:
+            case .vocab, .unknown:
                 FallbackCardView(item: item)
             }
         }
