@@ -281,6 +281,18 @@ Chi tiết đáng lưu ý:
 - **Chạy khi đăng nhập** bằng `SMAppService`. App là agent (`LSUIElement`), không có icon Dock.
 - **Mã dùng chung** (kiểu envelope, kho, view thẻ) tách thành một Swift package cục bộ để widget, app và bản iPhone sau này dùng lại.
 
+### App thanh menu đã làm (Giai đoạn 2)
+
+- **Vị trí mã.** `apps/macos/`: project sinh bằng XcodeGen từ `project.yml` (không commit `.xcodeproj`), target app `OSWidget` (bundle `local.oswidget.app`) trong `App/`, và Swift package cục bộ `OSWidgetKit` chứa cấu hình, mô hình, kho, sync engine, view thẻ và chính sách popup để widget và bản iPhone sau này dùng lại. Package không có phụ thuộc ngoài.
+- **Ký và quyền.** Personal Team `22LZWPB3XL`, đặt một lần ở `DEVELOPMENT_TEAM` trong `project.yml`. App Sandbox, `network.client`, App Group `22LZWPB3XL.os-widget` (suy ra từ Team ID). Cài bằng build Release với `-allowProvisioningUpdates` rồi copy vào `/Applications`; chạy khi đăng nhập bằng `SMAppService` (app tự đăng ký ở lần chạy đầu).
+- **Cấu hình.** URL Worker, URL Supabase và khoá publishable lưu trong `UserDefaults` của app; token client lưu trong Keychain (service `local.oswidget.app`). Nhập ở cửa sổ "Cài đặt…".
+- **Kho cục bộ.** Một file `store.json` trong group container `22LZWPB3XL.os-widget` (`StoreLocation.appGroup`), ghi lại sau mỗi thay đổi: mục, cursor, hàng đợi thao tác, cài đặt popup, lần đối chiếu cuối. Tên file riêng nên không đụng dữ liệu của app thử nghiệm A dùng chung container. Ở Giai đoạn 2 chỉ app ghi kho; nếu widget Giai đoạn 3 ghi hàng đợi thì cần phối hợp ghi giữa hai tiến trình. Vị trí này theo nhánh "A đạt"; kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30) còn chờ và có thể đổi nhánh (xem §9).
+- **Realtime.** Client kênh Phoenix tự viết trên `URLSessionWebSocketTask` (không dùng `supabase-swift`), join `postgres_changes` `INSERT` trên `events` bằng khoá publishable. Tín hiệu chỉ kích hoạt một vòng sync, không mang dữ liệu. Heartbeat 25 giây; mất kết nối thì nối lại với thời gian chờ tăng dần từ 1 giây tới tối đa 60 giây.
+- **Vòng sync.** Gửi hàng đợi trước, rồi `GET /events` từ `cursor - 20` theo trang 100 (lùi 20 để bắt sự kiện commit muộn; áp dụng lại là idempotent), rồi đối chiếu đầy đủ bằng `GET /items` khi lần trước đã quá 6 giờ hoặc cursor không hợp lệ. Kích hoạt bởi tín hiệu Realtime, poll mỗi 5 phút, mạng có lại (`NWPathMonitor`), máy thức dậy, thao tác mới trong hàng đợi và đổi cấu hình.
+- **Hàng đợi thao tác.** Đã đọc và xoá áp dụng ngay vào kho rồi xếp hàng. 2xx và 404 là xong (404: mục đã bị xoá ở nơi khác hoặc đã dọn); 408, 429, 5xx và lỗi mạng thử lại sau; 401 và 403 dừng gửi, giữ hàng đợi tới khi đổi token; mã 4xx khác bỏ thao tác. Mục đã xoá không nhận thao tác nào nữa.
+- **Popup.** `NSPanel` `.nonactivatingPanel` mở bằng `orderFrontRegardless()`, không thành key window (cấu hình của thử nghiệm C). Log `popup.shown id=… others=… latency_ms=…` tính từ `created_at` của mục; lý do không hiện ghi `popup.suppressed reason=…`.
+- **Log.** `os.Logger` subsystem `local.oswidget.app` (category `sync`, `store`, `popup`, `login`, `model`), chỉ ghi id, `seq`, mã trạng thái và trạng thái, không ghi token hay nội dung mục.
+
 ### Chia sẻ dữ liệu giữa app và widget
 
 Phương án chính là App Group với định danh có tiền tố Team ID, dạng mà Apple mô tả là không cần đăng ký trên trang Developer. Thử nghiệm A ngày đầu cho thấy App Group dạng `<TeamID>.os-widget` dùng được giữa app và widget khi ký bằng Personal Team miễn phí, và Xcode không nhúng provisioning profile nào. Việc app còn chạy sau 7 ngày chờ lần kiểm ngày 8 ([roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng)). Nếu không được, widget lấy ảnh chụp từ app qua HTTP trên localhost.
@@ -315,7 +327,7 @@ Chu kỳ poll dự phòng phải đủ thưa để hai máy không tiêu đáng 
 | Rủi ro | Ảnh hưởng | Phương án |
 |---|---|---|
 | App Groups không dùng được với tài khoản miễn phí | Widget không đọc được dữ liệu | Ngày đầu thử nghiệm A đã dùng được; nếu hỏng về sau, widget lấy ảnh chụp qua localhost. |
-| Profile ký hết hạn sau khoảng 7 ngày | Phải build lại định kỳ | Chấp nhận, hoặc nâng lên tài khoản trả phí. |
+| Profile ký hết hạn sau khoảng 7 ngày | Phải build lại định kỳ | App thanh menu cài ngày 2026-11-23 theo nhánh "A đạt": ký Personal Team, không script build lại. Kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30) còn chờ. Nếu app không mở được sau khoảng 7 ngày: thêm `scripts/build-install-macos.sh` để build và cài lại hằng tuần bằng một lệnh (quyết định của chủ dự án); tài khoản trả phí để sau, khi đó chỉ đổi `DEVELOPMENT_TEAM` trong `apps/macos/project.yml`. |
 | Widget làm mới chậm hoặc bị giới hạn | Widget hiện nội dung cũ | Popup là bề mặt tức thì; nếu quá chậm, thay widget bằng cửa sổ SwiftUI ở tầng desktop. |
 | Popup cướp focus | Gián đoạn khi đang gõ | Dùng panel không kích hoạt thay cho popover; thử nghiệm C ngày đầu xác nhận panel này không lấy focus khỏi app đang gõ. |
 | Worker Rust vượt 10 ms CPU | Request bị Cloudflare chặn ở gói miễn phí | Đã đo ở giai đoạn 0: trượt ngưỡng p99 ≤ 5 ms đặt ra (`POST /items` 11 ms, `GET /events` 7 ms); chủ dự án vẫn giữ Rust và chấp nhận rủi ro. Khi đã ấm, p50 chỉ 2–3 ms; đuôi p99 đến từ request trúng isolate mới đang khởi động Wasm, và các request đó tốn 16–21 ms, vượt hạn mức 10 ms nhưng lần đo không request nào bị chặn. `GET /events?since=0` với 159 sự kiện tốn 15–19 ms, nên Giai đoạn 1 thêm giới hạn số sự kiện mỗi trang. Nếu Cloudflare bắt đầu chặn: viết lại Worker bằng TypeScript, giữ nguyên API và schema. |

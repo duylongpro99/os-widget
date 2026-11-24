@@ -83,6 +83,24 @@ Thêm: `GET /events` giới hạn 100 sự kiện mỗi trang và từ chối `l
 
 **Hoàn thành khi:** đạt các tiêu chí 1, 3, 4 và 6 ở mục 10 của PRD, và popup không cướp focus khi đang gõ.
 
+### Kết quả
+
+Đang nghiệm thu. App cài trên MacBook ngày 2026-11-23 từ `apps/macos/` (ký Personal Team, kho `store.json` trong group container, xem [architecture.md](architecture.md#app-thanh-menu-đã-làm-giai-đoạn-2) §6), kiểm bằng `scripts/acceptance-menu-bar.sh`; đầu ra ở [báo cáo nghiệm thu](../plans/261123-1547-m2-menu-bar-app/reports/acceptance.md). Theo quyết định của chủ dự án, M2 chỉ cài trên MacBook; thiết bị thứ hai ở tiêu chí 3 được giả bằng API với token client, kiểm với Mac mini thật chuyển sang Giai đoạn 5.
+
+| Tiêu chí | Kết quả |
+|---|---|
+| 1 | Đạt. Popup hiện sau 781 ms (các lần kiểm khác 334–650 ms), đo từ `created_at` tới dòng log `popup.shown`; tín hiệu Realtime tới trong khoảng 0,4 s. |
+| 3 | Đạt trên một máy. Đã đọc đặt bằng API tới app trong dưới 1 s; bấm đã đọc trên app thì `GET /items` có `read_at` và `GET /events` có `item.read`. |
+| 4 | Hoãn: chưa có máy thứ hai chạy CLI. |
+| 6 | Đạt. Mục `vocab` (app chưa có view riêng) hiện `title` và `summary` bằng view dự phòng; `kind` không tồn tại có unit test. |
+| Focus | Đạt. Popup tự mở khi đang gõ TextEdit: `lsappinfo front` là TextEdit trước và sau khi popup hiện, ký tự gõ vẫn vào TextEdit. |
+
+Phát hiện khi nghiệm thu và đã sửa: danh sách mục không tự đóng khi bấm sang app khác, nên popup bị chặn tới khi người dùng đóng danh sách; app nay tự đóng danh sách khi mất active hoặc khi có cú bấm ở app khác (chi tiết trong báo cáo nghiệm thu).
+
+Còn chờ: đăng xuất rồi đăng nhập lại (app tự chạy), một đêm ngủ máy (bắt kịp sau khi thức), và kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30). App đang theo nhánh "A đạt"; nếu A trượt, cách ký và cài hoặc vị trí kho có thể đổi (xem plan M2, mục "Nhánh theo kết quả thử nghiệm").
+
+Ghi chú cho Giai đoạn 3: thử nghiệm B cho thấy widget vẽ lại trong khoảng 0,1 s khi app được phép reload, nên giữ WidgetKit; app phải gộp các lần reload, không quá một lần mỗi 5 giây, và ngân sách reload khi app chạy nền còn phải đo. View thẻ và kho nằm trong `OSWidgetKit`, M2 không gọi `WidgetCenter`, nên nếu cần vẫn chuyển được sang cửa sổ desktop dùng lại package này. Ở M2 chỉ app ghi `store.json`; nếu nút trong widget ghi hàng đợi thì Giai đoạn 3 phải phối hợp ghi giữa hai tiến trình.
+
 ## Giai đoạn 3: Widget
 
 - Widget extension đọc kho dùng chung, cỡ vừa và cỡ lớn.
