@@ -130,6 +130,21 @@ wait_log() {
   return 1
 }
 
+# wait_popup START ID SECONDS: waits for "popup.shown id=ID" and prints it. Returns 1 with
+# "suppressed <reason>" when the app logs popup.suppressed after START (the item list was open,
+# quiet mode, the kind is off, low priority), and 1 with nothing on timeout.
+wait_popup() {
+  local deadline=$((SECONDS + $3)) line
+  while ((SECONDS < deadline)); do
+    line=$(app_log "$1" "popup.shown id=$2" | head -n 1)
+    if [[ -n "$line" ]]; then echo "$line"; return 0; fi
+    line=$(app_log "$1" "popup.suppressed" | head -n 1)
+    if [[ -n "$line" ]]; then echo "suppressed ${line##*reason=}"; return 1; fi
+    sleep 1
+  done
+  return 1
+}
+
 # wait_applied START SEQ SECONDS: waits for a "sync.applied seq=A..B" line with A <= SEQ <= B.
 wait_applied() {
   local deadline=$((SECONDS + $3)) line a b
@@ -174,8 +189,8 @@ check_1() {
   id=$(publish_note c1 "popup $run_id") || { fail "1 popup" "publish failed"; return; }
   remember "$id"
   echo "published $id; waiting for popup.shown"
-  if ! line=$(wait_log "$start" "popup.shown id=$id" 30); then
-    fail "1 popup" "no popup.shown for $id within 30 s"
+  if ! line=$(wait_popup "$start" "$id" 30); then
+    fail "1 popup" "${line:-no popup.shown for $id within 30 s} (close the item list, quiet mode off, then run 1 again)"
     return
   fi
   latency=$(sed -nE 's/.*latency_ms=(-?[0-9]+).*/\1/p' <<<"$line")
@@ -318,6 +333,7 @@ check_focus() {
   echo
   echo "== Focus. The popup does not take focus from TextEdit"
   local i before after start id line
+  echo "Close the item list first (the app does not show popups while it is open)."
   echo "Open TextEdit, click into a document and keep typing until the popup has appeared."
   wait_enter "Ready to type?"
   for i in 10 9 8 7 6 5 4 3 2 1; do printf '%s ' "$i"; sleep 1; done
@@ -326,8 +342,8 @@ check_focus() {
   start=$(now_stamp)
   id=$(publish_note focus "focus $run_id") || { fail "focus" "publish failed"; return; }
   remember "$id"
-  if ! line=$(wait_log "$start" "popup.shown id=$id" 30); then
-    fail "focus" "no popup.shown for $id within 30 s"
+  if ! line=$(wait_popup "$start" "$id" 30); then
+    fail "focus" "${line:-no popup.shown for $id within 30 s} (close the item list, quiet mode off, then run focus again)"
     return
   fi
   after=$(front_app)
