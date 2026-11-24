@@ -1,7 +1,7 @@
 ---
 title: "M2: App thanh menu"
 description: "Hoàn thành Giai đoạn 2 của roadmap: app agent trên thanh menu macOS với sync engine (Realtime, cursor, poll dự phòng), kho cục bộ và hàng đợi thao tác, popup không kích hoạt, danh sách và view thẻ; kiểm bằng tiêu chí 1, 3, 4, 6 của PRD §10 và quy tắc không cướp focus."
-status: pending
+status: in-progress
 priority: P1
 effort: 28h
 branch: main
@@ -78,7 +78,7 @@ Thêm: `swift test` của package `OSWidgetKit` pass; app build được bằng 
 | 3 | [Sync engine](./phase-03-sync-engine.md) | Done (chưa chạy app) | Không |
 | 4 | [Thanh menu, danh sách và view thẻ](./phase-04-thanh-menu-danh-sach-va-the.md) | Done (chưa chạy app) | Không |
 | 5 | [Popup panel](./phase-05-popup-panel.md) | Done (chưa chạy app) | C (đã đạt) |
-| 6 | [Cài trên MacBook, nghiệm thu và cập nhật tài liệu](./phase-06-nghiem-thu-va-tai-lieu.md) | Pending | A, B (chỉ ghi chú) |
+| 6 | [Cài trên MacBook, nghiệm thu và cập nhật tài liệu](./phase-06-nghiem-thu-va-tai-lieu.md) | Done (tiêu chí 4 hoãn: chưa có máy thứ hai) | A, B (chỉ ghi chú) |
 
 Thứ tự: Phase 1 trước tiên. Phase 2 cần 1. Sau Phase 2, ba phase 3, 4, 5 làm song song được vì sở hữu file tách rời (bảng dưới). Phase 5 cần cả mỏ neo icon do Phase 4 cung cấp khi ghép nối, nhưng hợp đồng giữa hai bên đã cố định ở Phase 1. Phase 6 cần tất cả.
 

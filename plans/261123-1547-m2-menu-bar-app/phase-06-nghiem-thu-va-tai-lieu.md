@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Cài trên MacBook, nghiệm thu và cập nhật tài liệu"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [3, 4, 5]
@@ -81,3 +81,12 @@ App chạy từ `/Applications` trên MacBook, đạt tiêu chí 1, 3, 4, 6 củ
 ## Rollback
 
 Gỡ app khỏi `/Applications` trên MacBook, tắt mục Login Items, xoá `store.json` trong group container (không đụng dữ liệu WidgetProbe) và mục Keychain `local.oswidget.app`. Revert commit tài liệu nếu nghiệm thu không đạt; giữ báo cáo nghiệm thu làm bằng chứng.
+
+## Ghi chú
+
+- Hoàn thành ngày 2026-11-24, merge `macos-acceptance` vào `main` (commit merge `307f115`). Kết quả: [báo cáo nghiệm thu](./reports/acceptance.md) và [báo cáo review](../reports/review-261124-m2-p06.md). Server 8/8; tiêu chí 1 (`latency_ms=781`), 3a, 3b, 6 và focus đạt.
+- Operator, nguyên văn: 2026-11-23 22:35 "chúng ta không thể chời tới ngày 30/11 để tiếp tục, để note lại đó đến ngày sẽ kiểm tra lại, cứ move on" (làm Phase 6 ngay theo nhánh "A đạt"); 2026-11-23 "Bước 0 ý 2: note lại để sau nhé, hiện tại tôi chỉ có macbook ở đây"; 2026-11-24 khoảng 09:05 "tôi làm xong rồi, chỉ có bước này báo fail"; 09:1x "không" (danh sách không đóng khi bấm sang TextEdit); 09:3x "gõ vẫn bình thường, checklist 1–9 đều đạt"; khoảng 09:20 kiểm lại bản sửa danh sách "1 đạt / 2 đạt / 3 đạt".
+- Tiêu chí 4 (PRD §10.4) hoãn: cần một máy thứ hai chỉ chạy CLI để publish khi MacBook mất mạng, mà operator hiện chỉ có MacBook. Vì vậy plan M2 chưa xong (Done means mục 3).
+- Mục 10 (đăng xuất rồi đăng nhập lại) và 11 (ngủ qua đêm) của checklist còn chờ operator.
+- Kiểm ngày 8 của thử nghiệm A (2026-11-30) có thể đổi nhánh ký và cài hoặc vị trí kho (mục "Nhánh theo kết quả thử nghiệm" của plan).
+- Sửa khi review: danh sách mục không tự đóng khi bấm sang app khác vì app agent không thành active (log `list.shown active=false`); app nay tự đóng danh sách khi mất active hoặc khi có cú bấm ở app khác (commit `d9e8118`).
