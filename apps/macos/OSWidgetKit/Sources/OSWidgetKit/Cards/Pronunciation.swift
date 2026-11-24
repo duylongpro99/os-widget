@@ -113,12 +113,13 @@ public final class Pronouncer {
     }
 }
 
-/// `AudioPlayback` with `AVPlayer`.
+/// `AudioPlayback` with `AVPlayer`. The player is released when the file ends, fails or is stopped.
 @MainActor
 final class SystemAudioPlayback: AudioPlayback {
     private var player: AVPlayer?
     private var statusObservation: NSKeyValueObservation?
     private var failureObserver: NSObjectProtocol?
+    private var endObserver: NSObjectProtocol?
 
     func play(_ url: URL, onEvent: @escaping @MainActor (AudioPlaybackEvent) -> Void) {
         stop()
@@ -138,6 +139,14 @@ final class SystemAudioPlayback: AudioPlayback {
         ) { _ in
             Task { @MainActor in onEvent(.failed(reason: "play")) }
         }
+        endObserver = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.didPlayToEndTimeNotification, object: item, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                // Only when this file is still the current one; a newer `play` owns the player now.
+                if self?.player?.currentItem === item { self?.stop() }
+            }
+        }
         let player = AVPlayer(playerItem: item)
         self.player = player
         player.play()
@@ -150,6 +159,10 @@ final class SystemAudioPlayback: AudioPlayback {
             NotificationCenter.default.removeObserver(failureObserver)
         }
         failureObserver = nil
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+        }
+        endObserver = nil
         player?.pause()
         player = nil
     }
