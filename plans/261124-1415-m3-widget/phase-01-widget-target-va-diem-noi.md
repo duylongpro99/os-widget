@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Widget extension target, ký và điểm nối"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: []
@@ -42,11 +42,11 @@ dependencies: []
 
 ## Tasks & Steps
 
-- [ ] Thêm target `OSWidgetWidget` và phụ thuộc nhúng vào `project.yml` theo mẫu spike, giữ `DEVELOPMENT_TEAM` chỉ ở một chỗ.
-- [ ] Tạo `Widget/Info.plist`, entitlement, bundle khung.
-- [ ] Tạo `WidgetKind.swift`, `WidgetWiring.swift` và hai khung rỗng; thêm một dòng vào `AppDelegate.swift`.
-- [ ] `xcodegen generate` rồi build Debug không ký.
-- [ ] Cập nhật `README.md`.
+- [x] Thêm target `OSWidgetWidget` và phụ thuộc nhúng vào `project.yml` theo mẫu spike, giữ `DEVELOPMENT_TEAM` chỉ ở một chỗ.
+- [x] Tạo `Widget/Info.plist`, entitlement, bundle khung.
+- [x] Tạo `WidgetKind.swift`, `WidgetWiring.swift` và hai khung rỗng; thêm một dòng vào `AppDelegate.swift`.
+- [x] `xcodegen generate` rồi build Debug không ký.
+- [x] Cập nhật `README.md`.
 
 ## Verification
 
