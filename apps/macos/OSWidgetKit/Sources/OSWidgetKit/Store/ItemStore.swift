@@ -12,7 +12,7 @@ import Observation
 @MainActor
 @Observable
 public final class ItemStore {
-    public nonisolated static let fileName = "store.json"
+    public nonisolated static let fileName = StoreFile.fileName
 
     /// Every stored item, including deleted ones not yet dropped by a full sync. Views use
     /// `visibleItems`.
@@ -39,7 +39,7 @@ public final class ItemStore {
             return
         }
         do {
-            fileURL = try location.directory().appending(path: Self.fileName)
+            fileURL = StoreFile.url(in: try location.directory())
         } catch {
             Log.store.error("store.directory_failed error=\(String(describing: error), privacy: .public)")
             fileURL = nil
@@ -179,6 +179,35 @@ public final class ItemStore {
         save()
     }
 
+    // MARK: - Widget actions
+
+    /// Applies the actions waiting in `inbox` in order, through the same rules as the buttons in the
+    /// app, then removes their files and any corrupt ones. Returns how many actions changed the store.
+    ///
+    /// An action for an unknown or deleted item, or a read for an item already read, changes nothing.
+    /// Files are removed only after the store is saved, so if the app dies in between the next drain
+    /// finds the same files and applying them again leaves the store as it is. Each action keeps the
+    /// time of the tap, so the store ends up equal to what the widget showed while it waited.
+    @discardableResult
+    public func drain(_ inbox: ActionInbox) -> Int {
+        let contents = inbox.contents()
+        var applied = 0
+        for action in contents.actions {
+            guard let item = item(id: action.itemId), !item.isDeleted else { continue }
+            switch action.operation {
+            case .markRead:
+                guard !item.isRead else { continue }
+                enqueue(itemId: action.itemId, operation: .read(true), at: action.createdAt)
+            case .delete:
+                enqueue(itemId: action.itemId, operation: .delete, at: action.createdAt)
+            }
+            applied += 1
+        }
+        inbox.remove(contents.actions.map(\.id))
+        inbox.removeCorrupt(contents.corrupt)
+        return applied
+    }
+
     // MARK: - Popup settings
 
     public func setPopup(kind: String, enabled: Bool) {
@@ -193,7 +222,7 @@ public final class ItemStore {
 
     // MARK: - Queue
 
-    private func enqueue(itemId: String, operation: PendingAction.Operation) {
+    private func enqueue(itemId: String, operation: PendingAction.Operation, at time: Date? = nil) {
         // A deleted item takes no further actions: delete wins over read, even after the delete was sent.
         guard let item = item(id: itemId), !item.isDeleted else { return }
         let pending = queue.filter { $0.itemId == itemId }
@@ -206,7 +235,7 @@ public final class ItemStore {
             if pending.contains(where: { $0.operation == .delete }) { return }
             queue.removeAll { $0.itemId == itemId }
         }
-        queue.append(PendingAction(itemId: itemId, operation: operation, createdAt: now()))
+        queue.append(PendingAction(itemId: itemId, operation: operation, createdAt: time ?? now()))
         reapplyQueue()
         save()
     }
@@ -227,39 +256,6 @@ public final class ItemStore {
 
     // MARK: - Persistence
 
-    private struct StoreFile: Codable {
-        var version = 1
-        var cursor: Int64?
-        var items: [Item]
-        var queue: [PendingAction]
-        var popupSettings: PopupSettings
-        var lastFullSyncAt: Date?
-
-        enum CodingKeys: String, CodingKey {
-            case version, cursor, items, queue
-            case popupSettings = "popup_settings"
-            case lastFullSyncAt = "last_full_sync_at"
-        }
-
-        init(cursor: Int64?, items: [Item], queue: [PendingAction], popupSettings: PopupSettings, lastFullSyncAt: Date?) {
-            self.cursor = cursor
-            self.items = items
-            self.queue = queue
-            self.popupSettings = popupSettings
-            self.lastFullSyncAt = lastFullSyncAt
-        }
-
-        init(from decoder: Decoder) throws {
-            let c = try decoder.container(keyedBy: CodingKeys.self)
-            version = try c.decode(Int.self, forKey: .version)
-            cursor = try c.decodeIfPresent(Int64.self, forKey: .cursor)
-            items = try c.decode(LossyArray<Item>.self, forKey: .items).elements
-            queue = try c.decode(LossyArray<PendingAction>.self, forKey: .queue).elements
-            popupSettings = try c.decodeIfPresent(PopupSettings.self, forKey: .popupSettings) ?? .default
-            lastFullSyncAt = try c.decodeIfPresent(Date.self, forKey: .lastFullSyncAt)
-        }
-    }
-
     private func load() {
         guard let fileURL else { return }
         let data: Data
@@ -272,7 +268,7 @@ public final class ItemStore {
             return
         }
         do {
-            let file = try ServerJSON.makeDecoder().decode(StoreFile.self, from: data)
+            let file = try StoreFile.decode(data)
             items = file.items
             cursor = file.cursor
             queue = file.queue
@@ -290,7 +286,7 @@ public final class ItemStore {
         guard let fileURL else { return }
         let file = StoreFile(cursor: cursor, items: items, queue: queue, popupSettings: popupSettings, lastFullSyncAt: lastFullSyncAt)
         do {
-            let data = try ServerJSON.makeEncoder().encode(file)
+            let data = try file.encoded()
             try data.write(to: fileURL, options: .atomic)
         } catch {
             Log.store.error("store.write_failed error=\(String(describing: error), privacy: .public)")
