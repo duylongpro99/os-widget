@@ -7,11 +7,14 @@ mod auth;
 mod events;
 mod items;
 mod supabase;
+mod vocab;
 
 use auth::Role;
 use serde::Serialize;
 use serde_json::json;
-use worker::{Env, Error, Method, Request, Response, Result, event};
+use worker::{
+    Env, Error, Method, Request, Response, Result, ScheduleContext, ScheduledEvent, event,
+};
 
 #[event(fetch)]
 async fn fetch(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
@@ -23,6 +26,12 @@ async fn fetch(req: Request, env: Env, _ctx: worker::Context) -> Result<Response
             error(500, "internal error")
         }
     }
+}
+
+/// Cron Trigger: asks the database to send the next vocabulary word if one is due.
+#[event(scheduled)]
+async fn scheduled(_event: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
+    vocab::tick(&env).await;
 }
 
 async fn handle(req: Request, env: &Env) -> Result<Response> {
@@ -45,6 +54,7 @@ async fn handle(req: Request, env: &Env) -> Result<Response> {
 
     match route {
         Route::PostItems => items::post(req, env).await,
+        Route::PostVocabWords => vocab::post(req, env).await,
         Route::GetItems => items::list(env).await,
         Route::GetEvents => events::list(req, env).await,
         Route::PatchItem(id) => items::patch(req, env, id).await,
@@ -55,6 +65,7 @@ async fn handle(req: Request, env: &Env) -> Result<Response> {
 #[derive(Debug, PartialEq, Eq)]
 enum Route<'a> {
     PostItems,
+    PostVocabWords,
     GetItems,
     GetEvents,
     PatchItem(&'a str),
@@ -65,7 +76,7 @@ impl Route<'_> {
     /// The token an endpoint requires: publishing needs the publish token, all else the client token.
     fn role(&self) -> Role {
         match self {
-            Route::PostItems => Role::Publish,
+            Route::PostItems | Route::PostVocabWords => Role::Publish,
             _ => Role::Client,
         }
     }
@@ -80,6 +91,10 @@ fn route<'a>(method: &Method, path: &'a str) -> std::result::Result<Route<'a>, u
         "/items" => match method {
             Method::Post => Ok(Route::PostItems),
             Method::Get => Ok(Route::GetItems),
+            _ => Err(405),
+        },
+        "/vocab/words" => match method {
+            Method::Post => Ok(Route::PostVocabWords),
             _ => Err(405),
         },
         "/events" => match method {
@@ -130,6 +145,10 @@ mod tests {
         assert_eq!(route(&Method::Post, "/items"), Ok(Route::PostItems));
         assert_eq!(route(&Method::Get, "/items"), Ok(Route::GetItems));
         assert_eq!(route(&Method::Get, "/events"), Ok(Route::GetEvents));
+        assert_eq!(
+            route(&Method::Post, "/vocab/words"),
+            Ok(Route::PostVocabWords)
+        );
         let path = format!("/items/{ID}");
         assert_eq!(route(&Method::Patch, &path), Ok(Route::PatchItem(ID)));
         assert_eq!(route(&Method::Delete, &path), Ok(Route::DeleteItem(ID)));
@@ -138,6 +157,7 @@ mod tests {
     #[test]
     fn only_publishing_needs_the_publish_token() {
         assert_eq!(Route::PostItems.role(), Role::Publish);
+        assert_eq!(Route::PostVocabWords.role(), Role::Publish);
         assert_eq!(Route::GetItems.role(), Role::Client);
         assert_eq!(Route::GetEvents.role(), Role::Client);
         assert_eq!(Route::PatchItem(ID).role(), Role::Client);
@@ -150,6 +170,8 @@ mod tests {
         assert_eq!(route(&Method::Get, "/nope"), Err(404));
         assert_eq!(route(&Method::Get, "/items/"), Err(404));
         assert_eq!(route(&Method::Get, "/events/1"), Err(404));
+        assert_eq!(route(&Method::Post, "/vocab"), Err(404));
+        assert_eq!(route(&Method::Post, "/vocab/words/"), Err(404));
         assert_eq!(route(&Method::Patch, &format!("/items/{ID}/x")), Err(404));
     }
 
@@ -170,6 +192,9 @@ mod tests {
     fn wrong_methods_are_405() {
         assert_eq!(route(&Method::Delete, "/items"), Err(405));
         assert_eq!(route(&Method::Post, "/events"), Err(405));
+        for method in [Method::Get, Method::Put, Method::Delete, Method::Patch] {
+            assert_eq!(route(&method, "/vocab/words"), Err(405));
+        }
         assert_eq!(route(&Method::Get, &format!("/items/{ID}")), Err(405));
     }
 }
