@@ -99,4 +99,119 @@ struct VocabTests {
         #expect(vocab.context == nil)
         #expect(vocab.word == "serendipity" && vocab.meanings.count == 2)
     }
+
+    // MARK: Pronunciation source
+
+    @Test func httpsAudioWithHostIsPlayed() throws {
+        let url = try #require(URL(string: "https://example.com/serendipity.mp3"))
+        #expect(PronunciationSource.choose(word: "serendipity", audioURL: "https://example.com/serendipity.mp3") == .audio(url))
+    }
+
+    @Test func otherAudioURLsFallBackToSpeech() {
+        for audioURL in [nil, "", "http://example.com/a.mp3", "https://", "https:///a.mp3", "file:///tmp/a.mp3"] {
+            #expect(PronunciationSource.choose(word: "serendipity", audioURL: audioURL) == .speech("serendipity"), "\(audioURL ?? "nil")")
+        }
+    }
+
+    // MARK: Pronouncer
+
+    @MainActor
+    @Test func wordWithoutAudioIsSpoken() {
+        let (pronouncer, audio, speech) = Self.pronouncer()
+        pronouncer.pronounce(word: "serendipity", audioURL: nil)
+        #expect(audio.played.isEmpty)
+        #expect(speech.spoken == ["serendipity"])
+    }
+
+    @MainActor
+    @Test func audioIsPlayedAndNotSpokenWhenItStarts() async throws {
+        let (pronouncer, audio, speech) = Self.pronouncer(timeout: .milliseconds(50))
+        pronouncer.pronounce(word: "serendipity", audioURL: "https://example.com/a.mp3")
+        #expect(audio.played.map(\.absoluteString) == ["https://example.com/a.mp3"])
+        audio.send(.started)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(speech.spoken.isEmpty)
+    }
+
+    @MainActor
+    @Test func failedAudioIsSpokenOnce() {
+        let (pronouncer, audio, speech) = Self.pronouncer()
+        pronouncer.pronounce(word: "serendipity", audioURL: "https://example.com/a.mp3")
+        audio.send(.failed(reason: "load"))
+        audio.send(.failed(reason: "play"))
+        #expect(speech.spoken == ["serendipity"])
+        #expect(audio.stopCount >= 2)
+    }
+
+    @MainActor
+    @Test func audioThatDoesNotStartInTimeIsSpoken() async throws {
+        let (pronouncer, audio, speech) = Self.pronouncer(timeout: .milliseconds(50))
+        pronouncer.pronounce(word: "serendipity", audioURL: "https://example.com/a.mp3")
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(speech.spoken == ["serendipity"])
+        audio.send(.started)
+        #expect(speech.spoken == ["serendipity"])
+    }
+
+    @MainActor
+    @Test func pronouncingAgainStopsAndRestarts() {
+        let (pronouncer, audio, speech) = Self.pronouncer()
+        pronouncer.pronounce(word: "serendipity", audioURL: "https://example.com/a.mp3")
+        let stopsBefore = audio.stopCount
+        pronouncer.pronounce(word: "serendipity", audioURL: "https://example.com/a.mp3")
+        #expect(audio.played.count == 2)
+        #expect(audio.stopCount > stopsBefore && speech.stopCount >= 2)
+        // A failure reported for the first request is ignored; only the current one may fall back.
+        audio.sendToFirst(.failed(reason: "load"))
+        #expect(speech.spoken.isEmpty)
+        audio.send(.failed(reason: "load"))
+        #expect(speech.spoken == ["serendipity"])
+    }
+
+    @MainActor
+    private static func pronouncer(timeout: Duration = .seconds(60)) -> (Pronouncer, FakeAudio, FakeSpeech) {
+        let audio = FakeAudio()
+        let speech = FakeSpeech()
+        return (Pronouncer(audio: audio, speech: speech, audioTimeout: timeout), audio, speech)
+    }
+}
+
+@MainActor
+private final class FakeAudio: AudioPlayback {
+    var played: [URL] = []
+    var stopCount = 0
+    private var handlers: [@MainActor (AudioPlaybackEvent) -> Void] = []
+
+    func play(_ url: URL, onEvent: @escaping @MainActor (AudioPlaybackEvent) -> Void) {
+        played.append(url)
+        handlers.append(onEvent)
+    }
+
+    func stop() {
+        stopCount += 1
+    }
+
+    /// Reports an event for the latest `play`.
+    func send(_ event: AudioPlaybackEvent) {
+        handlers.last?(event)
+    }
+
+    /// Reports an event for the first `play`, as a late callback of a replaced file would.
+    func sendToFirst(_ event: AudioPlaybackEvent) {
+        handlers.first?(event)
+    }
+}
+
+@MainActor
+private final class FakeSpeech: SpeechPlayback {
+    var spoken: [String] = []
+    var stopCount = 0
+
+    func speak(_ word: String) {
+        spoken.append(word)
+    }
+
+    func stop() {
+        stopCount += 1
+    }
 }
