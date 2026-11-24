@@ -12,7 +12,7 @@ import Observation
 @MainActor
 @Observable
 public final class ItemStore {
-    public nonisolated static let fileName = "store.json"
+    public nonisolated static let fileName = StoreFile.fileName
 
     /// Every stored item, including deleted ones not yet dropped by a full sync. Views use
     /// `visibleItems`.
@@ -39,7 +39,7 @@ public final class ItemStore {
             return
         }
         do {
-            fileURL = try location.directory().appending(path: Self.fileName)
+            fileURL = StoreFile.url(in: try location.directory())
         } catch {
             Log.store.error("store.directory_failed error=\(String(describing: error), privacy: .public)")
             fileURL = nil
@@ -227,39 +227,6 @@ public final class ItemStore {
 
     // MARK: - Persistence
 
-    private struct StoreFile: Codable {
-        var version = 1
-        var cursor: Int64?
-        var items: [Item]
-        var queue: [PendingAction]
-        var popupSettings: PopupSettings
-        var lastFullSyncAt: Date?
-
-        enum CodingKeys: String, CodingKey {
-            case version, cursor, items, queue
-            case popupSettings = "popup_settings"
-            case lastFullSyncAt = "last_full_sync_at"
-        }
-
-        init(cursor: Int64?, items: [Item], queue: [PendingAction], popupSettings: PopupSettings, lastFullSyncAt: Date?) {
-            self.cursor = cursor
-            self.items = items
-            self.queue = queue
-            self.popupSettings = popupSettings
-            self.lastFullSyncAt = lastFullSyncAt
-        }
-
-        init(from decoder: Decoder) throws {
-            let c = try decoder.container(keyedBy: CodingKeys.self)
-            version = try c.decode(Int.self, forKey: .version)
-            cursor = try c.decodeIfPresent(Int64.self, forKey: .cursor)
-            items = try c.decode(LossyArray<Item>.self, forKey: .items).elements
-            queue = try c.decode(LossyArray<PendingAction>.self, forKey: .queue).elements
-            popupSettings = try c.decodeIfPresent(PopupSettings.self, forKey: .popupSettings) ?? .default
-            lastFullSyncAt = try c.decodeIfPresent(Date.self, forKey: .lastFullSyncAt)
-        }
-    }
-
     private func load() {
         guard let fileURL else { return }
         let data: Data
@@ -272,7 +239,7 @@ public final class ItemStore {
             return
         }
         do {
-            let file = try ServerJSON.makeDecoder().decode(StoreFile.self, from: data)
+            let file = try StoreFile.decode(data)
             items = file.items
             cursor = file.cursor
             queue = file.queue
@@ -290,7 +257,7 @@ public final class ItemStore {
         guard let fileURL else { return }
         let file = StoreFile(cursor: cursor, items: items, queue: queue, popupSettings: popupSettings, lastFullSyncAt: lastFullSyncAt)
         do {
-            let data = try ServerJSON.makeEncoder().encode(file)
+            let data = try file.encoded()
             try data.write(to: fileURL, options: .atomic)
         } catch {
             Log.store.error("store.write_failed error=\(String(describing: error), privacy: .public)")
