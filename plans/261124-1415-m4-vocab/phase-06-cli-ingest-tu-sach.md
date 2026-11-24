@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "CLI ingest book từ sách .txt"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: [5]

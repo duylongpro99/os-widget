@@ -93,7 +93,7 @@ Thêm: `swift test` của `OSWidgetKit` pass (127 test cũ cộng test mới); `
 | 2 | [Đọc kho, snapshot và hộp thư thao tác](./phase-02-snapshot-va-hop-thu-thao-tac.md) | Completed | Không | Có (vị trí hộp thư) |
 | 3 | [Chính sách reload và đếm reload](./phase-03-chinh-sach-reload-va-dem.md) | Completed | 1, 2 | Không |
 | 4 | [Giao diện widget và bố cục rút gọn theo loại](./phase-04-giao-dien-widget-va-bo-cuc-rut-gon.md) | Completed | 1, 2 | Có (nguồn dữ liệu provider) |
-| 5 | [Nút đã đọc và xoá, app nhận thao tác](./phase-05-nut-da-doc-xoa-va-nhan-thao-tac.md) | Pending | 1, 2, 4 | Có (đường gửi thao tác) |
+| 5 | [Nút đã đọc và xoá, app nhận thao tác](./phase-05-nut-da-doc-xoa-va-nhan-thao-tac.md) | Completed | 1, 2, 4 | Có (đường gửi thao tác) |
 | 6 | [Cài, nghiệm thu, đếm một ngày và tài liệu](./phase-06-nghiem-thu-va-tai-lieu.md) | Pending | 1–5 | Có (cách cài) |
 
 Thứ tự: Phase 1 và 2 chạy song song (1 chỉ sửa project và tạo khung trong `App/`, `Widget/`; 2 chỉ sửa package). Sau khi cả hai xong, Phase 3 và 4 chạy song song. Phase 5 cần khung hàng của Phase 4. Phase 6 cần tất cả. Tối đa hai session cook cùng lúc.

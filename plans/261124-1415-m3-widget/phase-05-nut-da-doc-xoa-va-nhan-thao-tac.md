@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Nút đã đọc và xoá, app nhận thao tác"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: [1, 2, 4]
@@ -46,9 +46,9 @@ Mỗi hàng trong widget có nút đã đọc và xoá. Bấm nút ghi một `Wi
 
 ## Tasks & Steps
 
-- [ ] Hai intent và nút.
-- [ ] `InboxWatcher`: rút lúc khởi động, DispatchSource, quét dự phòng, gộp sự kiện, log.
-- [ ] Build Debug không ký; chạy lại `swift test`.
+- [x] Hai intent và nút.
+- [x] `InboxWatcher`: rút lúc khởi động, DispatchSource, quét dự phòng, gộp sự kiện, log.
+- [x] Build Debug không ký; chạy lại `swift test`.
 
 ## Verification
 
