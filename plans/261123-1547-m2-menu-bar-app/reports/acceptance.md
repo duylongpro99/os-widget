@@ -9,9 +9,9 @@
 | 3b. Đã đọc từ MacBook sang server (PRD §10.3) | PASS, `GET /items` có `read_at`, `GET /events` có `item.read` seq 427 |
 | 4. Mất mạng, ba mục từ máy khác (PRD §10.4) | Hoãn: chưa có máy thứ hai (operator hiện chỉ có MacBook, 2026-11-23) |
 | 6. Loại chưa có view (PRD §10.6) | PASS, mục `vocab` hiện `title` và `summary` bằng view dự phòng |
-| Focus | Chưa kiểm được: lần chạy 09:05 không có popup vì danh sách mục đang mở (`popup.suppressed reason=list_open`); chờ operator chạy lại |
+| Focus | PASS (chạy lại 09:09): `lsappinfo front` là TextEdit trước và sau `popup.shown`, ký tự gõ vẫn vào TextEdit. Lần chạy 09:05 không có popup vì danh sách mục đang mở (`popup.suppressed reason=list_open`) |
 
-Còn chờ operator: chạy lại `focus`; đăng xuất rồi đăng nhập lại (app tự chạy, không có icon Dock); để máy ngủ qua đêm (mục publish trong đêm có trong danh sách, có vòng sync sau khi thức); tiêu chí 4 khi có máy thứ hai.
+Còn chờ operator: đăng xuất rồi đăng nhập lại (app tự chạy, không có icon Dock); để máy ngủ qua đêm (mục publish trong đêm có trong danh sách, có vòng sync sau khi thức); tiêu chí 4 khi có máy thứ hai.
 
 ## Môi trường
 
@@ -90,6 +90,16 @@ Chẩn đoán lần `focus` trượt, từ log của app:
 
 Danh sách mục còn mở từ các bước trước (bước 3a yêu cầu mở danh sách), nên app không hiện popup, đúng thiết kế (FR-10c). Mục mới hiện trong danh sách, và đó là thứ operator thấy ("popup vẫn hiện"); 12 giây sau operator thao tác với mục đó trong danh sách. Tiêu chí focus vì vậy chưa được kiểm, không phải lỗi app. Script nay in lý do `popup.suppressed` thay cho chờ hết 30 giây và nhắc đóng danh sách trước (commit `d3d7d6f`).
 
+Chạy lại `focus` lúc 09:09 sau khi đóng danh sách:
+
+```text
+== Focus. The popup does not take focus from TextEdit
+front app before: TextEdit, after popup.shown: TextEdit
+PASS focus front app TextEdit before and after popup.shown; typing stayed in TextEdit
+criteria failed: 0
+cleanup: DELETE /items/c45f0a84-5a63-4a4a-914f-134a5a3aced5 -> 204
+```
+
 ## Checklist bằng mắt
 
 Operator trả lời (qua session giám sát, 2026-11-24 khoảng 09:05): "tôi làm xong rồi, chỉ có bước này báo fail … nhưng thực tế popup vẫn hiện". Theo câu đó, mục 1–9 được ghi là đạt; session giám sát đã hỏi xác nhận từng mục nhưng chưa có trả lời riêng từng mục.
@@ -112,6 +122,7 @@ Operator trả lời (qua session giám sát, 2026-11-24 khoảng 09:05): "tôi 
 ## Ghi chú
 
 - Lỗi tìm thấy khi cấu hình và đã sửa trên nhánh: ô trong cửa sổ Cài đặt không nhận ⌘V. App agent tự dựng `NSApplication` và không có main menu, nên AppKit không có mục menu nào chuyển phím tắt sửa chữ tới ô nhập. Sửa bằng main menu ẩn có menu Edit chuẩn (commit `804e582`); operator nhập được cấu hình sau khi cài lại.
+- Phát hiện cho review, chưa sửa: danh sách mục không tự đóng khi bấm sang app khác. Ở lần chạy focus đầu, operator bấm vào TextEdit nhưng danh sách vẫn mở (câu hỏi "danh sách có còn mở khi gõ TextEdit không", operator trả lời nguyên văn: "không" theo nghĩa danh sách không đóng, ghi D4 ở session giám sát). Hậu quả: `isListOpen` vẫn đúng nên mọi popup bị chặn (`list_open`) cho tới khi người dùng tự đóng danh sách. Đọc mã (`App/MenuBar/MenuBarController.swift`): popover dùng `behavior = .transient` và `showList()` gọi `NSApp.activate()` rồi `popover.show`; không có gì khác đóng popover (không theo dõi `didResignActive`, không có global event monitor). Nguyên nhân nghi ngờ, chưa chứng minh: popover `.transient` chỉ đóng khi app nhận được cú bấm bên ngoài hoặc bị mất trạng thái active; với app agent trên macOS 14 trở lên, `NSApp.activate()` là yêu cầu hợp tác và có thể không làm app thành active, nên bấm vào app khác không làm app mất active và popover không đóng. Hướng sửa (không làm ở nhánh này vì không phải sửa một dòng đã chứng minh): đóng popover khi app mất active hoặc khi có cú bấm chuột toàn cục bên ngoài (`NSEvent.addGlobalMonitorForEvents`), và kiểm lại bằng tay.
 - Quan sát cho review, chưa sửa: số "+N" của popup cộng dồn khi popup còn mở (others=0→4 trong lúc chạy `acceptance-server.sh`) và vẫn đếm cả mục đã bị xoá trong lúc đó (`PopupPolicy.merge`). Khi đổi cấu hình, log có `realtime.state send_failed` rồi `stopped` trước khi join lại trong 1 s, không ảnh hưởng.
 - Dòng log mức info của app chỉ giữ trong bộ nhớ một thời gian ngắn; `log show` sau vài phút có thể không còn. Bằng chứng nằm trong đầu ra script lúc chạy.
 - Mọi mục thử dùng `source: "acceptance-m2"`, `ttl` 3600 và đã được xoá (204).

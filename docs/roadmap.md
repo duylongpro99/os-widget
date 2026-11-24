@@ -93,7 +93,9 @@ Thêm: `GET /events` giới hạn 100 sự kiện mỗi trang và từ chối `l
 | 3 | Đạt trên một máy. Đã đọc đặt bằng API tới app trong dưới 1 s; bấm đã đọc trên app thì `GET /items` có `read_at` và `GET /events` có `item.read`. |
 | 4 | Hoãn: chưa có máy thứ hai chạy CLI. |
 | 6 | Đạt. Mục `vocab` (app chưa có view riêng) hiện `title` và `summary` bằng view dự phòng; `kind` không tồn tại có unit test. |
-| Focus | Chưa kiểm được: lần chạy đầu danh sách mục đang mở nên app không hiện popup (đúng thiết kế); chờ chạy lại. |
+| Focus | Đạt. Popup tự mở khi đang gõ TextEdit: `lsappinfo front` là TextEdit trước và sau khi popup hiện, ký tự gõ vẫn vào TextEdit. |
+
+Phát hiện chưa sửa: danh sách mục không tự đóng khi bấm sang app khác, nên popup bị chặn tới khi người dùng đóng danh sách (chi tiết trong báo cáo nghiệm thu).
 
 Còn chờ: đăng xuất rồi đăng nhập lại (app tự chạy), một đêm ngủ máy (bắt kịp sau khi thức), và kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30). App đang theo nhánh "A đạt"; nếu A trượt, cách ký và cài hoặc vị trí kho có thể đổi (xem plan M2, mục "Nhánh theo kết quả thử nghiệm").
 
