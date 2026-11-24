@@ -1,6 +1,7 @@
 import AppKit
 import OSWidgetKit
 import SwiftUI
+import os
 
 extension Notification.Name {
     /// Posted on the main queue to show the item list, for example from the popup's "+N" row.
@@ -21,6 +22,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
     private var lastAnnouncementSerial: Int?
     private var openListObserver: NSObjectProtocol?
+    private var resignActiveObserver: NSObjectProtocol?
+    /// Watches clicks in other apps while the list shows; `nil` while it is closed.
+    private var outsideClickMonitor: Any?
+    private let log = Logger(subsystem: "local.oswidget.app", category: "menu")
 
     /// True while the item list is showing. The popup stays closed while it is.
     var isListOpen: Bool { popover.isShown }
@@ -48,6 +53,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.showList() }
         }
+        resignActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.closeList(.resignActive) }
+        }
         observeStore()
         LaunchAtLogin.enableOnFirstLaunch()
     }
@@ -65,14 +75,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
             showMenu()
         } else if popover.isShown {
-            popover.performClose(sender)
+            closeList(.icon)
         } else {
             showList()
         }
     }
 
     private func showMenu() {
-        popover.performClose(nil)
+        closeList(.menu)
         statusItem.menu = statusMenu.menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
@@ -82,9 +92,33 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         guard !popover.isShown, let button = statusItem.button else { return }
         NSApp.activate()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        log.info("list.shown active=\(NSApp.isActive, privacy: .public)")
+        // A global monitor only sees events sent to other apps, so clicks in the list, the popup
+        // and the settings window never reach it.
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let iconFrame = self.anchorRect()
+                if ItemListDismissal.closesList(clickAt: NSEvent.mouseLocation, iconFrame: iconFrame) {
+                    self.closeList(.outsideClick)
+                }
+            }
+        }
+    }
+
+    private func closeList(_ reason: ItemListDismissal.Reason) {
+        guard popover.isShown else { return }
+        log.info("list.closed reason=\(reason.rawValue, privacy: .public)")
+        popover.performClose(nil)
     }
 
     func popoverDidClose(_ notification: Notification) {
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+            self.outsideClickMonitor = nil
+        }
         listModel.clear()
     }
 
