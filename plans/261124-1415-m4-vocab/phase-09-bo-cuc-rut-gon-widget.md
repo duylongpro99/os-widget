@@ -1,7 +1,7 @@
 ---
 phase: 9
 title: "Bố cục rút gọn vocab ở widget"
-status: pending
+status: completed
 priority: P2
 effort: "2h"
 dependencies: [8]
