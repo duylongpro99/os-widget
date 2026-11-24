@@ -49,6 +49,7 @@ struct CompactVocabView: View {
                     .font(.subheadline)
                     .fontWeight(item.isRead ? .regular : .bold)
                     .foregroundStyle(item.isRead ? .secondary : .primary)
+                    .layoutPriority(1)
                 Text(verbatim: vocab.ipa)
                     .font(.caption)
                     .foregroundStyle(.secondary)
