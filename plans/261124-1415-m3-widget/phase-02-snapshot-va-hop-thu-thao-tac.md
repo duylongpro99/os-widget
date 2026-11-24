@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Đọc kho, snapshot và hộp thư thao tác"
-status: pending
+status: completed
 priority: P1
 effort: "5h"
 dependencies: []
