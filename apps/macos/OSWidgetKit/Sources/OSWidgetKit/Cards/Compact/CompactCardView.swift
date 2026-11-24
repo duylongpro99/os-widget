@@ -26,6 +26,7 @@ public struct CompactCardView: View {
         switch content {
         case .notification: .notification
         case .generic: .generic
+        case .vocab: .fallback
         case .unknown: .fallback
         }
     }
@@ -50,7 +51,7 @@ public struct CompactCardView: View {
                 default: nil
                 }
             }.first { !$0.isEmpty }
-        case .unknown:
+        case .vocab, .unknown:
             nil
         }
         if let candidate, !candidate.isEmpty { return candidate }

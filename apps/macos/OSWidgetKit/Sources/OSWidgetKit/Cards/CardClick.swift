@@ -4,7 +4,8 @@ import SwiftUI
 public extension View {
     /// Click handling for a card. A click on the card runs `tap`. A click on a link inside the card
     /// (a `link` block or a markdown link) runs `link` with that URL instead, and only when
-    /// `URLPolicy.isOpenable` accepts it; the same click never also runs `tap`.
+    /// `URLPolicy.isOpenable` accepts it; the same click never also runs `tap`. A control inside the card
+    /// that calls the environment's `cardControlClicked` keeps its click from running `tap` the same way.
     func onCardClick(
         tap: @escaping @MainActor () -> Void,
         link: @escaping @MainActor (URL) -> Void
@@ -26,10 +27,29 @@ final class CardClickGate {
         lastLinkAt = time
     }
 
+    /// A button or other control inside the card handled the click at `time`; the card's tap is dropped
+    /// for it like for a link.
+    func controlClicked(at time: TimeInterval) {
+        lastLinkAt = time
+    }
+
     func allowsTap(at time: TimeInterval) -> Bool {
         guard let lastLinkAt else { return true }
         return abs(time - lastLinkAt) > Self.linkWindow
     }
+}
+
+public extension EnvironmentValues {
+    /// Called by a control inside a card when it handles a click, so the card's own tap does not also run
+    /// for that click. Outside `onCardClick` it does nothing.
+    var cardControlClicked: @MainActor @Sendable () -> Void {
+        get { self[CardControlClickedKey.self] }
+        set { self[CardControlClickedKey.self] = newValue }
+    }
+}
+
+private struct CardControlClickedKey: EnvironmentKey {
+    static let defaultValue: @MainActor @Sendable () -> Void = {}
 }
 
 private struct CardClickModifier: ViewModifier {
@@ -45,6 +65,9 @@ private struct CardClickModifier: ViewModifier {
                 link(url)
                 return .handled
             })
+            .environment(\.cardControlClicked) { [gate] in
+                gate.controlClicked(at: ProcessInfo.processInfo.systemUptime)
+            }
             .contentShape(Rectangle())
             .onTapGesture {
                 let time = ProcessInfo.processInfo.systemUptime

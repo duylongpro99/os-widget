@@ -117,11 +117,12 @@ extension Item: Codable {
 
 /// The renderable content of an item.
 ///
-/// `vocab` decodes to `.unknown` until a vocab view exists. A body that does not match its kind also
-/// becomes `.unknown`, so the item still shows with its `title` and `summary`.
+/// A body that does not match its kind becomes `.unknown`, so the item still shows with its `title` and
+/// `summary`.
 public enum ItemContent: Sendable, Hashable {
     case notification(text: String?)
     case generic(blocks: [Block])
+    case vocab(VocabContent)
     case unknown
 
     public init(kind: String, body: JSONValue?) {
@@ -145,6 +146,8 @@ public enum ItemContent: Sendable, Hashable {
             } else {
                 self = .unknown
             }
+        case "vocab":
+            self = VocabContent(json: body).map(ItemContent.vocab) ?? .unknown
         default:
             self = .unknown
         }

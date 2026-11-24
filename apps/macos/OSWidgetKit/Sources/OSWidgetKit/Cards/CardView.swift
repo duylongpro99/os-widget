@@ -16,11 +16,12 @@ public struct CardView: View {
         self.item = item
     }
 
-    /// Which view renders a given content. Unknown content, including kinds without a view yet such as
-    /// `vocab`, uses the fallback card.
+    /// Which view renders a given content. Unknown content, including a kind without a view or a body
+    /// that does not match its kind, uses the fallback card.
     public enum Variant: Sendable, Hashable {
         case notification
         case generic
+        case vocab
         case fallback
     }
 
@@ -28,6 +29,7 @@ public struct CardView: View {
         switch content {
         case .notification: .notification
         case .generic: .generic
+        case .vocab: .vocab
         case .unknown: .fallback
         }
     }
@@ -39,6 +41,8 @@ public struct CardView: View {
                 NotificationCardView(item: item, text: text)
             case .generic(let blocks):
                 GenericCardView(item: item, blocks: blocks)
+            case .vocab(let vocab):
+                VocabCardView(item: item, vocab: vocab)
             case .unknown:
                 FallbackCardView(item: item)
             }
