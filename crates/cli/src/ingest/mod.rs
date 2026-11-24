@@ -93,47 +93,18 @@ fn post_batch(target: &Target, origin: &str, batch: &[VocabBody]) -> Result<u64,
 /// Turns the server's answer to `POST /vocab/words` into a stored count, or the
 /// report to exit with.
 fn interpret_batch_response(status: u16, body: &str) -> Result<u64, Report> {
-    let json: Option<Value> = serde_json::from_str(body).ok();
-    let text = |key: &str| {
-        json.as_ref()
-            .and_then(|v| v.get(key))
-            .and_then(Value::as_str)
-            .map(str::to_owned)
-    };
-    let invalid = |detail: String| Report {
-        stdout: None,
-        stderr: Some(format!("invalid vocab: {detail}")),
-        code: crate::EXIT_INVALID,
-    };
-
-    match status {
-        200 => json
-            .as_ref()
-            .and_then(|v| v.get("stored"))
-            .and_then(Value::as_u64)
-            .ok_or_else(|| {
-                Report::failure(format!(
-                    "HTTP 200: response has no stored count: {}",
-                    snippet(body)
-                ))
-            }),
-        400 => Err(match (text("field"), text("message")) {
-            (Some(field), Some(message)) if !field.is_empty() => {
-                invalid(format!("{field}: {message}"))
-            }
-            (_, Some(message)) => invalid(message),
-            _ => invalid(format!("HTTP 400: {}", snippet(body))),
-        }),
-        _ => {
-            let reason = text("error").unwrap_or_else(|| snippet(body));
-            let hint = match status {
-                401 => format!(" (check {})", crate::TOKEN_ENV),
-                403 => format!(" ({} is not a publish token)", crate::TOKEN_ENV),
-                _ => String::new(),
-            };
-            Err(Report::failure(format!("HTTP {status}: {reason}{hint}")))
-        }
+    if status != 200 {
+        return Err(crate::error_report("vocab", status, body));
     }
+    serde_json::from_str::<Value>(body)
+        .ok()
+        .and_then(|v| v.get("stored").and_then(Value::as_u64))
+        .ok_or_else(|| {
+            Report::failure(format!(
+                "HTTP 200: response has no stored count: {}",
+                snippet(body)
+            ))
+        })
 }
 
 /// Looks every word up, reports each on `progress`, and sends the valid ones

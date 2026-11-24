@@ -172,9 +172,15 @@ impl Report {
     }
 
     fn invalid(detail: impl std::fmt::Display) -> Self {
+        Self::rejected("envelope", detail)
+    }
+
+    /// A payload of kind `what` (for example `envelope` or `vocab`) that failed
+    /// validation, here or on the server.
+    fn rejected(what: &str, detail: impl std::fmt::Display) -> Self {
         Self {
             stdout: None,
-            stderr: Some(format!("invalid envelope: {detail}")),
+            stderr: Some(format!("invalid {what}: {detail}")),
             code: EXIT_INVALID,
         }
     }
@@ -364,23 +370,37 @@ fn interpret_response(status: u16, body: &str) -> Report {
                 snippet(body)
             )),
         },
-        400 => match (text("field"), text("message")) {
-            (Some(field), Some(message)) if !field.is_empty() => {
-                Report::invalid(format!("{field}: {message}"))
-            }
-            (_, Some(message)) => Report::invalid(message),
-            _ => Report::invalid(format!("HTTP 400: {}", snippet(body))),
-        },
-        _ => {
-            let reason = text("error").unwrap_or_else(|| snippet(body));
-            let hint = match status {
-                401 => format!(" (check {TOKEN_ENV})"),
-                403 => format!(" ({TOKEN_ENV} is not a publish token)"),
-                _ => String::new(),
-            };
-            Report::failure(format!("HTTP {status}: {reason}{hint}"))
-        }
+        _ => error_report("envelope", status, body),
     }
+}
+
+/// Maps a non-success answer of the server to the report to exit with: a 400
+/// names the rejected field of the `what` payload and exits 2, every other status
+/// exits 1 with a hint for the two auth statuses.
+fn error_report(what: &str, status: u16, body: &str) -> Report {
+    let json: Option<Value> = serde_json::from_str(body).ok();
+    let text = |key: &str| {
+        json.as_ref()
+            .and_then(|v| v.get(key))
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+    };
+    if status == 400 {
+        return match (text("field"), text("message")) {
+            (Some(field), Some(message)) if !field.is_empty() => {
+                Report::rejected(what, format!("{field}: {message}"))
+            }
+            (_, Some(message)) => Report::rejected(what, message),
+            _ => Report::rejected(what, format!("HTTP 400: {}", snippet(body))),
+        };
+    }
+    let reason = text("error").unwrap_or_else(|| snippet(body));
+    let hint = match status {
+        401 => format!(" (check {TOKEN_ENV})"),
+        403 => format!(" ({TOKEN_ENV} is not a publish token)"),
+        _ => String::new(),
+    };
+    Report::failure(format!("HTTP {status}: {reason}{hint}"))
 }
 
 /// A short, single-line excerpt of a response body for error messages.
@@ -696,6 +716,35 @@ mod tests {
     fn ingest_words_needs_a_path_and_has_no_token_flag() {
         assert!(parse_words(&[]).is_err());
         assert!(parse_words(&["list.txt", "--token", "secret"]).is_err());
+    }
+
+    #[test]
+    fn error_report_maps_each_status_for_any_payload_kind() {
+        let invalid = error_report(
+            "vocab",
+            400,
+            r#"{"field":"words[0].ipa","message":"must not be empty"}"#,
+        );
+        assert_eq!(invalid.code, EXIT_INVALID);
+        assert_eq!(
+            invalid.stderr.as_deref(),
+            Some("invalid vocab: words[0].ipa: must not be empty")
+        );
+        let root = error_report("envelope", 400, r#"{"field":"","message":"bad"}"#);
+        assert_eq!(root.stderr.as_deref(), Some("invalid envelope: bad"));
+        let bare = error_report("vocab", 400, "Bad Request");
+        assert_eq!(
+            bare.stderr.as_deref(),
+            Some("invalid vocab: HTTP 400: Bad Request")
+        );
+        let auth = error_report("vocab", 401, r#"{"error":"unauthorized"}"#);
+        assert_eq!(auth.code, EXIT_FAILURE);
+        assert_eq!(
+            auth.stderr.as_deref(),
+            Some("HTTP 401: unauthorized (check OS_WIDGET_PUBLISH_TOKEN)")
+        );
+        let down = error_report("vocab", 503, "unavailable");
+        assert_eq!(down.stderr.as_deref(), Some("HTTP 503: unavailable"));
     }
 
     #[test]
