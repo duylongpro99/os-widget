@@ -144,14 +144,14 @@ Phase 5 và 6 cùng sửa `crates/cli/src/ingest/mod.rs` nên chạy nối tiế
 
 ## Câu hỏi cần operator trả lời
 
-Gửi cho supervisor `supervisor-project` ngày 2026-11-24. Câu 5 đến 7 do supervisor quyết; câu 1 đến 4 là lựa chọn sản phẩm, đang chờ operator (D5 đến D8). Trong lúc chờ, đề xuất là giá trị mặc định của plan.
+Gửi cho supervisor `supervisor-project` ngày 2026-11-24. Câu 5 đến 7 do supervisor quyết; câu 1 đến 4 do operator trả lời (D5 đến D8). Đã trả lời hết (xem "Operator answers").
 
 | # | Câu hỏi | Đề xuất | Phase bị ảnh hưởng | Trạng thái |
 |---|---|---|---|---|
-| 1 | Khi đã gửi hết từ, mặc định dừng hay quay vòng (`vocab_when_exhausted`)? | Quay vòng (`rotate`): xoá `sent_at` của mọi từ rồi gửi tiếp, không gửi lại ngay từ vừa gửi. Dừng làm thẻ biến mất lặng lẽ cho tới khi nạp thêm. Đổi được bất cứ lúc nào bằng một dòng SQL. | 2, 7 | Chờ operator (D5); mặc định theo đề xuất |
-| 2 | Sách `.txt` nào nạp đầu tiên, và danh sách từ API ban đầu là gì? | Sách: một bản UTF-8 từ Project Gutenberg operator đang muốn đọc, mặc định "Pride and Prejudice" (Gutenberg #1342); file nằm ngoài repo, nạp tối đa 50 từ. Danh sách API: 17 từ đủ trường trong lần đo cộng danh sách riêng của operator nếu có. | 6, 7, 10 | Chờ operator (D6); mặc định theo đề xuất |
-| 3 | Mục `vocab` gửi với `priority` nào? | `normal`: popup tự mở mỗi giờ, và người dùng tắt riêng `vocab` ở menu nếu phiền (FR-10c, đã có ở M2). Lưu ở `vocab_priority`, đổi được không cần deploy. | 2 | Chờ operator (D7); mặc định theo đề xuất |
-| 4 | Mục `vocab` sống bao lâu (`ttl`)? | 1 ngày (86400 giây, như ví dụ ở architecture §3.1), để danh sách không giữ 168 thẻ mỗi tuần. Lưu ở `vocab_item_ttl_seconds`. | 2 | Chờ operator (D8); mặc định theo đề xuất |
+| 1 | Khi đã gửi hết từ, mặc định dừng hay quay vòng (`vocab_when_exhausted`)? | Quay vòng (`rotate`): xoá `sent_at` của mọi từ rồi gửi tiếp, không gửi lại ngay từ vừa gửi. Dừng làm thẻ biến mất lặng lẽ cho tới khi nạp thêm. Đổi được bất cứ lúc nào bằng một dòng SQL. | 2, 7 | Đã trả lời (D5): theo đề xuất |
+| 2 | Sách `.txt` nào nạp đầu tiên, và danh sách từ API ban đầu là gì? | Sách: một bản UTF-8 từ Project Gutenberg operator đang muốn đọc, mặc định "Pride and Prejudice" (Gutenberg #1342); file nằm ngoài repo, nạp tối đa 50 từ. Danh sách API: 17 từ đủ trường trong lần đo cộng danh sách riêng của operator nếu có. | 6, 7, 10 | Đã trả lời (D6): theo đề xuất |
+| 3 | Mục `vocab` gửi với `priority` nào? | `normal`: popup tự mở mỗi giờ, và người dùng tắt riêng `vocab` ở menu nếu phiền (FR-10c, đã có ở M2). Lưu ở `vocab_priority`, đổi được không cần deploy. | 2 | Đã trả lời (D7): theo đề xuất |
+| 4 | Mục `vocab` sống bao lâu (`ttl`)? | 1 ngày (86400 giây, như ví dụ ở architecture §3.1), để danh sách không giữ 168 thẻ mỗi tuần. Lưu ở `vocab_item_ttl_seconds`. | 2 | Đã trả lời (D8): theo đề xuất |
 | 5 | Nhịp cron và nơi chạy? | Cron Trigger của Worker `*/5 * * * *` (288 lần mỗi ngày, chu kỳ chính xác tới 5 phút) theo roadmap, đo CPU một giờ sau deploy; chỉ chuyển sang `pg_cron` nếu có lần chạy bị chặn vì CPU. Cron Trigger gọi PostgREST nên còn giữ project Supabase không bị tạm dừng; `pg_cron` không tốn CPU Worker nhưng chưa rõ có tính là hoạt động không. | 4, 7 | Đã chốt (supervisor) |
 | 6 | Thứ tự chọn từ chưa gửi? | Ngẫu nhiên trong các từ chưa gửi, để từ của cùng một sách không tới theo đúng thứ tự xuất hiện. | 2 | Đã chốt (supervisor) |
 | 7 | Nạp lại một từ đã có thì làm gì? | Ghi đè `entry` và `origin` bằng bản mới, giữ `added_at` và `sent_at`; riêng `context`: nếu bản mới không có thì giữ `context` cũ, để nạp từ API sau khi nạp từ sách không làm mất câu ngữ cảnh. | 2, 4 | Đã chốt (supervisor) |
@@ -165,12 +165,21 @@ Ngày 2026-11-24 (khoảng 14:20), supervisor `supervisor-project` trả lời:
 | 5 | Chấp nhận: Cron Trigger `*/5 * * * *` gọi một RPC `vocab_tick`; đo CPU bằng `wrangler tail` một giờ sau deploy; chỉ chuyển sang `pg_cron` cùng hàm nếu có lần chạy bị chặn vì CPU (quyết định của supervisor). | Không, giữ như Phase 4 và 7. |
 | 6 | Chấp nhận thứ tự ngẫu nhiên (quyết định của supervisor). | Không, giữ như Phase 2. |
 | 7 | Chấp nhận: ghi đè `entry` và `origin`, giữ `added_at` và `sent_at`, giữ `context` cũ khi bản mới không có (quyết định của supervisor). | Không, giữ như Phase 2 và 4. |
-| 1–4 | Chờ operator (D5 đến D8). | Dùng đề xuất làm mặc định; khi có câu trả lời, cập nhật giá trị mặc định ở Phase 2 và bước G3 của Phase 7. |
+
+
+Ngày 2026-11-24 14:24, operator trả lời câu 1 đến 4 (D5 đến D8) qua supervisor, mỗi câu nguyên văn "A" (chọn đề xuất).
+
+| # | Câu trả lời | Thay đổi trong plan |
+|---|---|---|
+| 1 (D5) | "A": quay vòng khi hết từ; xoá `sent_at`, không gửi lại ngay từ vừa gửi; đổi được bằng một dòng `settings`. | Không, `vocab_when_exhausted` mặc định `"rotate"` như Phase 2. |
+| 2 (D6) | "A": sách UTF-8 từ Project Gutenberg nằm ngoài repo, mặc định "Pride and Prejudice" (#1342), tối đa 50 từ; danh sách API là 17 từ đủ trường của lần đo cộng danh sách riêng của operator nếu có. | Không, dùng ở Phase 6 (`--max` 50) và bước G3 của Phase 7. |
+| 3 (D7) | "A": `priority` `normal`, lưu ở `vocab_priority`. | Không, như Phase 2. |
+| 4 (D8) | "A": `ttl` 1 ngày (86400 giây), lưu ở `vocab_item_ttl_seconds`. | Không, như Phase 2. |
 
 ## Validation Log
 
 ### Session 1 (2026-11-24)
 
-Câu 5 đến 7 đã chốt và khớp thiết kế trong Phase 2, 4, 7; không phase nào phải đổi. Câu 1 đến 4 chỉ ảnh hưởng giá trị mặc định trong migration của Phase 2 và dữ liệu nạp ở Phase 7, nên không chặn cook nào trước Phase 2.
+Câu 5 đến 7 đã chốt và khớp thiết kế trong Phase 2, 4, 7; không phase nào phải đổi. Câu 1 đến 4 (D5 đến D8) operator chọn đúng đề xuất, nên giá trị mặc định trong Phase 2 và dữ liệu nạp ở Phase 7 giữ nguyên. Whole-plan sweep: không còn chỗ nào ghi "chờ operator".
 
 <!-- slug: m4-vocab -->
