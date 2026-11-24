@@ -1,7 +1,7 @@
 import AppKit
 
-/// Entry point of the menu bar agent. It builds the shared environment and starts the three parts of
-/// the app (sync, menu bar, popup); everything else lives in those parts.
+/// Entry point of the menu bar agent. It builds the shared environment and starts the parts of the app
+/// (sync, widget wiring, menu bar, popup); everything else lives in those parts.
 @main
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let env = AppEnvironment.live()
         SyncWiring.start(env: env)
+        WidgetWiring.start(env: env)
         let menuBar = MenuBarController(env: env)
         popup = PopupController(
             env: env,

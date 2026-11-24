@@ -25,6 +25,9 @@ targets:
     sources: [App]
     dependencies:
       - package: OSWidgetKit
+      - target: OSWidgetWidget
+        embed: true
+        codeSign: true
     entitlements:
       path: App/App.entitlements
       properties:
@@ -43,3 +46,29 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: local.oswidget.app
+  OSWidgetWidget:
+    type: app-extension
+    platform: macOS
+    sources: [Widget]
+    dependencies:
+      - package: OSWidgetKit
+    # No network entitlement: only the app talks to the server; the widget reads the shared store and
+    # writes actions to the inbox in the App Group container.
+    entitlements:
+      path: Widget/Widget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(TeamIdentifierPrefix)os-widget
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: OS Widget
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        AppGroupID: $(APP_GROUP_ID)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.oswidget.app.widget
