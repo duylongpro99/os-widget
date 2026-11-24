@@ -24,7 +24,7 @@ public enum StoreReader {
         do {
             data = try Data(contentsOf: url)
         } catch CocoaError.fileReadNoSuchFile {
-            Log.store.error("store.reader_failed reason=missing")
+            Log.store.notice("store.reader_failed reason=missing")
             return nil
         } catch {
             Log.store.error("store.reader_failed reason=unreadable error=\(String(describing: error), privacy: .public)")
