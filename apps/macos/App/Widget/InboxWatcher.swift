@@ -41,10 +41,16 @@ final class InboxWatcher {
         sweep = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.sweepInterval)
-                guard !Task.isCancelled else { return }
-                self?.drain()
+                guard !Task.isCancelled, let self else { return }
+                self.drain()
             }
         }
+    }
+
+    // Cancelling the source is what closes its file descriptor, so a watcher that goes away without
+    // `stop()` must still cancel it.
+    isolated deinit {
+        stop()
     }
 
     func stop() {
