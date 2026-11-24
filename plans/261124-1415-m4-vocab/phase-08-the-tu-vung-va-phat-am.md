@@ -81,6 +81,7 @@ Text là dữ liệu thuần (không render markdown hay HTML).
 - `AVPlayer` trong app sandbox cần quyền mạng: app đã có `com.apple.security.network.client`.
 - Giọng `en-US` không có trên máy: `AVSpeechSynthesisVoice(language:)` trả nil thì dùng giọng mặc định.
 - Xung đột với cook M3 trên `CardView.swift` và `Item.swift`: supervisor xếp lịch; cook rebase trước khi commit.
+- Nếu Phase 4 của M3 đã merge, `CompactCardView.variant(for:)` là `switch` đủ trường hợp trên `ItemContent`, nên thêm `.vocab` làm nó không biên dịch: phase này thêm đúng một dòng `case .vocab: .fallback` vào `Cards/Compact/CompactCardView.swift` (Phase 9 thay bằng bố cục thật). Nếu Phase 4 của M3 chưa merge, cook M3 thêm dòng đó khi rebase.
 
 ## Rollback
 

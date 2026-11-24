@@ -25,7 +25,7 @@ Quyết định D4 của operator (2026-11-24 14:12, nguyên văn): "dictionarya
 
 1. Worker `https://os-widget.longdaobk17.workers.dev` vẫn qua `scripts/acceptance-server.sh`; `cargo test --workspace` (92) và `swift test` (127) pass trên `main` tại `2f7bf2e`.
 2. Docker chạy được để dựng Supabase cục bộ (`supabase start`) như Phase 1 của M1.
-3. Phase 9 chỉ mở khi các phase widget của M3 (`plans/261124-1415-m3-widget/`: widget extension đọc kho dùng chung và bảng ánh xạ bố cục rút gọn theo `kind`) đã xong.
+3. Phase 9 chỉ mở khi Phase 4 của [plan M3](../261124-1415-m3-widget/plan.md) (giao diện widget và `CompactCardView`, cần Phase 1 và 2 của M3) đã merge.
 4. Bước live (đánh dấu **[operator]** trong phase) chỉ chạy khi supervisor đã hỏi và operator đồng ý.
 
 ## Done means
@@ -69,7 +69,7 @@ Thêm: CPU của mỗi lần chạy cron được đo trên bản deploy và ghi
 | 6 | [CLI `ingest book` từ sách `.txt`](./phase-06-cli-ingest-tu-sach.md) | Pending | Server | 5 |
 | 7 | [Deploy, đo CPU cron và nghiệm thu server](./phase-07-deploy-va-nghiem-thu-server.md) | Pending | Server, có bước **[operator]** | 2, 4, 5, 6 |
 | 8 | [Thẻ `vocab` đầy đủ và phát âm](./phase-08-the-tu-vung-va-phat-am.md) | Pending | Client | Không (xếp lịch tránh cook M3 sửa cùng file) |
-| 9 | [Bố cục rút gọn `vocab` ở widget](./phase-09-bo-cuc-rut-gon-widget.md) | Pending | Client | 8; các phase widget của M3 |
+| 9 | [Bố cục rút gọn `vocab` ở widget](./phase-09-bo-cuc-rut-gon-widget.md) | Pending | Client | 8; M3 Phase 4 |
 | 10 | [Nghiệm thu PRD §10.5 và cập nhật tài liệu](./phase-10-nghiem-thu-va-tai-lieu.md) | Pending | Client và tài liệu | 7, 8, 9 |
 
 Server-only (1 đến 7) không chạm `apps/`, nên chạy song song được với cook của M3. Tối đa 3 session song song (quyết định của operator 2026-11-24).
@@ -80,7 +80,7 @@ Server:  2 ──┐
          3 ──┤        ├──> 7 ──┐
              └──> 5 ──> 6 ──┘  │
 Client:  8 ─────────────> 9 ───┼──> 10
-         M3 (widget) ─────┘    │
+         M3 Phase 4 ──────┘    │
 ```
 
 Gợi ý xếp lịch với 3 session: đợt 1 chạy 2, 3 và 8 (8 chỉ khi không có cook M3 đang sửa `Cards/CardView.swift` hoặc `Model/Item.swift`); đợt 2 chạy 4 và 5; đợt 3 chạy 6; rồi 7; 9 khi M3 xong; 10 cuối cùng.
@@ -96,11 +96,11 @@ Gợi ý xếp lịch với 3 session: đợt 1 chạy 2, 3 và 8 (8 chỉ khi k
 | 5 | `crates/cli/src/main.rs`, `crates/cli/src/ingest/mod.rs`, `crates/cli/src/ingest/dictionary.rs`, `crates/cli/tests/fixtures/dictionary/*.json`, `crates/cli/Cargo.toml` |
 | 6 | `crates/cli/src/ingest/book.rs`, `crates/cli/src/ingest/stopwords.rs`, `crates/cli/src/ingest/mod.rs` (thêm lệnh `book`), `crates/cli/tests/fixtures/book/*.txt` |
 | 7 | `scripts/acceptance-vocab.sh`, `plans/261124-1415-m4-vocab/reports/acceptance-server.md`; bước live trên Supabase và Cloudflare |
-| 8 | Dưới `apps/macos/OSWidgetKit/`: `Sources/OSWidgetKit/Model/VocabContent.swift`, `Sources/OSWidgetKit/Model/Item.swift` (thêm `ItemContent.vocab`), `Sources/OSWidgetKit/Cards/VocabCardView.swift`, `Sources/OSWidgetKit/Cards/Pronunciation.swift`, `Sources/OSWidgetKit/Cards/CardView.swift`, `Sources/OSWidgetKit/Cards/CardPreviews.swift`, `Tests/OSWidgetKitTests/VocabTests.swift`, `Tests/OSWidgetKitTests/CardsTests.swift`, `Tests/OSWidgetKitTests/Fixtures/items.json` |
-| 9 | Chỉ nhánh `vocab` trong file bố cục rút gọn mà M3 tạo (tên file theo plan M3), cùng test của nhánh đó |
+| 8 | Dưới `apps/macos/OSWidgetKit/`: `Sources/OSWidgetKit/Model/VocabContent.swift`, `Sources/OSWidgetKit/Model/Item.swift` (thêm `ItemContent.vocab`), `Sources/OSWidgetKit/Cards/VocabCardView.swift`, `Sources/OSWidgetKit/Cards/Pronunciation.swift`, `Sources/OSWidgetKit/Cards/CardView.swift`, `Sources/OSWidgetKit/Cards/CardPreviews.swift`, `Tests/OSWidgetKitTests/VocabTests.swift`, `Tests/OSWidgetKitTests/CardsTests.swift`, `Tests/OSWidgetKitTests/Fixtures/items.json`; một dòng `case .vocab: .fallback` trong `Sources/OSWidgetKit/Cards/Compact/CompactCardView.swift` nếu M3 Phase 4 đã merge |
+| 9 | Dưới `apps/macos/OSWidgetKit/`: `Sources/OSWidgetKit/Cards/Compact/CompactVocabView.swift`; nhánh `vocab` trong `Sources/OSWidgetKit/Cards/Compact/CompactCardView.swift` và `Tests/OSWidgetKitTests/CompactCardTests.swift` (file của M3, sửa sau khi M3 Phase 4 xong) |
 | 10 | `plans/261124-1415-m4-vocab/reports/acceptance.md`, `docs/architecture.md`, `docs/roadmap.md`, `docs/prd.md` |
 
-Phase 5 và 6 cùng sửa `crates/cli/src/ingest/mod.rs` nên chạy nối tiếp. Phase 8 và các phase của M3 có thể cùng sửa `Cards/CardView.swift` và `Model/Item.swift`: supervisor không cho hai cook sửa hai file này cùng lúc; cook đến sau rebase lên commit của cook trước.
+Phase 5 và 6 cùng sửa `crates/cli/src/ingest/mod.rs` nên chạy nối tiếp. Phase 8 và các phase của M3 có thể cùng sửa `Cards/CardView.swift` và `Model/Item.swift`: supervisor không cho hai cook sửa hai file này cùng lúc; cook đến sau rebase lên commit của cook trước. Thêm `ItemContent.vocab` làm `switch` đủ trường hợp trong `CompactCardView.variant(for:)` (M3 Phase 4) không biên dịch, nên Phase 8 hoặc cook M3 rebase sau thêm `case .vocab: .fallback` (xem Phase 8, mục Risk).
 
 ## Thiết kế đã chốt
 

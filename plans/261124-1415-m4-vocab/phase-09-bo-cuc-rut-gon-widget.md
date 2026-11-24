@@ -9,7 +9,7 @@ dependencies: [8]
 
 # Phase 9: Bố cục rút gọn `vocab` ở widget
 
-Client. Phụ thuộc các phase widget của M3 (`plans/261124-1415-m3-widget/`): widget extension đọc kho dùng chung, và chỗ ánh xạ `kind` sang bố cục rút gọn. Chỉ mở khi các phase đó đã xong và đã merge vào `main`.
+Client. Phụ thuộc Phase 4 của M3 ([Giao diện widget và bố cục rút gọn theo loại](../261124-1415-m3-widget/phase-04-giao-dien-widget-va-bo-cuc-rut-gon.md)), vốn cần Phase 1 và 2 của M3, và Phase 8 của plan này. Chỉ mở khi các phase đó đã merge vào `main`.
 
 ## Goal
 
@@ -20,13 +20,15 @@ Mục `vocab` trong widget hiện bằng bố cục rút gọn riêng thay cho `
 - Roadmap Giai đoạn 4: "bố cục rút gọn ở widget". Roadmap Giai đoạn 3: "bố cục rút gọn cho từng loại" do M3 làm.
 - `VocabContent` từ Phase 8 dùng lại để giải mã.
 - Architecture §6: không có nút phát âm trong widget.
-- Khi viết plan này, plan M3 chưa có; tên file và kiểu ánh xạ bố cục rút gọn lấy theo plan M3 lúc mở phase.
+- Plan M3 (mục "Phối hợp với Giai đoạn 4"): `CompactCardView` trong `OSWidgetKit/Sources/OSWidgetKit/Cards/Compact/` chọn view theo `CompactCardView.Variant`, ánh xạ từ `ItemContent` bằng `switch` đủ trường hợp; cỡ lớn có `WidgetSize.large.leadRowLines` để thẻ `vocab` rút gọn có chỗ. Đây là file duy nhất của M3 mà M4 sửa.
 
 ## Files to Create / Modify
 
-- Modify: file bố cục rút gọn theo `kind` mà M3 tạo, chỉ thêm nhánh `vocab` (tên file theo plan M3)
-- Create: view bố cục rút gọn `vocab` cạnh các bố cục của M3 (ví dụ `VocabCompactView.swift` trong cùng thư mục)
-- Modify: test bố cục rút gọn của M3, thêm trường hợp `vocab`
+Dưới `apps/macos/OSWidgetKit/`:
+
+- Modify: `Sources/OSWidgetKit/Cards/Compact/CompactCardView.swift` (`Variant.vocab`, `case .vocab` ở `variant(for:)` thay cho ánh xạ tạm sang `.fallback` của Phase 8)
+- Create: `Sources/OSWidgetKit/Cards/Compact/CompactVocabView.swift`
+- Modify: `Tests/OSWidgetKitTests/CompactCardTests.swift` (thêm trường hợp `vocab`)
 
 ## Thiết kế
 
@@ -37,7 +39,7 @@ Mục `vocab` trong widget hiện bằng bố cục rút gọn riêng thay cho `
 
 ## Tasks & Steps
 
-- [ ] Đọc plan M3 và mã widget đã merge; xác định điểm ánh xạ.
+- [ ] Đọc `CompactCardView.swift` và `WidgetSize.swift` đã merge.
 - [ ] Thêm view và nhánh `vocab`.
 - [ ] Test: mục `vocab` chọn bố cục `vocab`; `vocab` thiếu `ipa` chọn bố cục dự phòng.
 - [ ] Kiểm bằng preview widget hai cỡ.
@@ -49,7 +51,7 @@ Mục `vocab` trong widget hiện bằng bố cục rút gọn riêng thay cho `
 
 ## Risk Assessment
 
-- Bố cục của M3 không có điểm mở rộng theo `kind`: dừng và báo supervisor thay vì sửa phần chung của M3 (mục "Stop and ask" của plan).
+- `CompactCardView` khi merge khác mô tả của plan M3 (không có `Variant` hoặc `switch` đủ trường hợp): dừng và báo supervisor thay vì sửa phần chung của M3 (mục "Stop and ask" của plan).
 - Định nghĩa dài làm vỡ bố cục: giới hạn dòng như trên.
 
 ## Rollback
