@@ -11,7 +11,7 @@ mod vocab;
 
 pub use generic::{Block, Field, GenericBody};
 pub use parse::{EnvelopeError, parse};
-pub use vocab::{Meaning, VocabBody};
+pub use vocab::{Meaning, VocabBody, check_vocab, parse_vocab};
 
 use serde::{Deserialize, Serialize};
 
