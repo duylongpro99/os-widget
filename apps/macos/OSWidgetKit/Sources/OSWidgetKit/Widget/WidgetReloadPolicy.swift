@@ -48,12 +48,15 @@ public struct WidgetReloadPolicy: Sendable {
             return .skip
         }
         guard snapshot != lastReloaded else { return .skip }
-        guard let lastReloadAt, now.timeIntervalSince(lastReloadAt) < minimumInterval.seconds else {
-            return .reloadNow
-        }
+        guard let lastReloadAt else { return .reloadNow }
+        let interval = minimumInterval.seconds
+        let elapsed = now.timeIntervalSince(lastReloadAt)
+        guard elapsed < interval else { return .reloadNow }
         pending = snapshot
         timerArmed = true
-        return .schedule(at: lastReloadAt.addingTimeInterval(minimumInterval.seconds))
+        // A clock set back since the last reload would put the old due time far ahead; wait one
+        // interval from now instead.
+        return .schedule(at: elapsed < 0 ? now.addingTimeInterval(interval) : lastReloadAt.addingTimeInterval(interval))
     }
 
     /// Call when the timer from `.schedule` rings. Returns `true` when the newest waiting snapshot

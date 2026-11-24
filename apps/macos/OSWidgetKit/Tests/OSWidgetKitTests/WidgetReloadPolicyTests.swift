@@ -93,6 +93,17 @@ struct WidgetReloadPolicyTests {
         #expect(decision1 == .schedule(at: start.addingTimeInterval(10)))
     }
 
+    @Test func aClockSetBackWaitsOneIntervalFromNow() {
+        var policy = policy()
+        _ = offer(&policy, snapshot(1), at: start)
+        let earlier = start.addingTimeInterval(-3600)
+        let decision1 = offer(&policy, snapshot(2), at: earlier)
+        #expect(decision1 == .schedule(at: earlier.addingTimeInterval(5)))
+        let fired1 = policy.fire(at: earlier.addingTimeInterval(5))
+        #expect(fired1)
+        #expect(policy.lastReloaded == snapshot(2))
+    }
+
     @Test func burstOfFiftyChangesInTwelveSecondsReloadsAtMostFourTimes() {
         var policy = policy()
         var reloadTimes: [Date] = []
