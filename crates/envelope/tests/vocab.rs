@@ -100,3 +100,38 @@ fn check_vocab_prefixes_the_field() {
     let e = check_vocab(&b, "body.").unwrap_err();
     assert_eq!(e.field, "body.meanings[0].definition");
 }
+
+#[test]
+fn whitespace_ipa_is_rejected() {
+    let mut v = body();
+    v["ipa"] = json!(" \t");
+    let e = err(&v);
+    assert_eq!(e.field, "ipa");
+    assert_eq!(e.message, "must not be empty");
+}
+
+#[test]
+fn empty_pos_is_rejected() {
+    let mut v = body();
+    v["pos"] = json!("");
+    assert_eq!(err(&v).field, "pos");
+}
+
+#[test]
+fn multi_line_word_is_rejected() {
+    let mut v = body();
+    v["word"] = json!("seren\ndipity");
+    let e = err(&v);
+    assert_eq!(e.field, "word");
+    assert_eq!(e.message, "must be a single line");
+}
+
+#[test]
+fn envelope_with_empty_ipa_names_the_body_field() {
+    let v = json!({
+        "v": 1, "kind": "vocab", "source": "vocab-cron", "title": "serendipity", "summary": "(n.)",
+        "body": { "word": "serendipity", "ipa": "", "pos": "noun", "meanings": [{ "definition": "luck" }] }
+    });
+    let e = envelope::parse(&serde_json::to_vec(&v).unwrap()).unwrap_err();
+    assert_eq!(e.field, "body.ipa");
+}

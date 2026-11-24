@@ -44,6 +44,12 @@ pub fn parse_vocab(value: &serde_json::Value) -> Result<VocabBody, EnvelopeError
 pub fn check_vocab(body: &VocabBody, prefix: &str) -> Result<(), EnvelopeError> {
     let field = |name: &str| format!("{prefix}{name}");
     not_blank(&field("word"), &body.word)?;
+    // The word becomes the card title, which is one line.
+    if body.word.contains(['\n', '\r']) {
+        return Err(EnvelopeError::new(field("word"), "must be a single line"));
+    }
+    not_blank(&field("ipa"), &body.ipa)?;
+    not_blank(&field("pos"), &body.pos)?;
     if let Some(url) = &body.audio_url {
         https_url(&field("audio_url"), url)?;
     }
