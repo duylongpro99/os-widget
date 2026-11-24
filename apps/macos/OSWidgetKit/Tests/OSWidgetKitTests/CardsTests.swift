@@ -72,11 +72,23 @@ struct CardsTests {
         #expect(CardView.variant(for: .unknown) == .fallback)
     }
 
-    @Test func unknownKindAndVocabUseFallbackCard() throws {
+    @Test func unknownKindUsesFallbackCard() throws {
         let unknown = Item(id: "u", kind: "no-such-kind", source: "s", title: "T", summary: "S", body: .object(["x": .number(1)]), createdAt: Date())
         #expect(CardView.variant(for: unknown.content) == .fallback)
+    }
+
+    @Test func vocabUsesVocabCardAndBadVocabUsesFallback() throws {
         let vocab = try #require(Fixture.items().items.first { $0.kind == "vocab" })
-        #expect(CardView.variant(for: vocab.content) == .fallback)
+        #expect(CardView.variant(for: vocab.content) == .vocab)
+        let incomplete = Item(id: "v", kind: "vocab", source: "s", title: "T", summary: "S", body: .object(["word": .string("x")]), createdAt: Date())
+        #expect(CardView.variant(for: incomplete.content) == .fallback)
+    }
+
+    @Test func vocabCardLimitsWhatItShows() {
+        let meanings = (1...5).map { VocabContent.Meaning(definition: "d\($0)", examples: ["e\($0)a", "e\($0)b"]) }
+        let shown = VocabCardView.shownMeanings(meanings)
+        #expect(shown.map(\.definition) == ["d1", "d2", "d3"])
+        #expect(shown.map(\.examples) == [["e1a"], ["e2a"], ["e3a"]])
     }
 
     @Test func unsupportedBlocksAreSkipped() {
@@ -107,8 +119,25 @@ struct CardsTests {
     @Test func everyCardRendersAtCardWidth() throws {
         let fixtures = try Fixture.items().items
         let unknown = Item(id: "u", kind: "no-such-kind", source: "s", title: "Tiêu đề", summary: "Tóm tắt", createdAt: Date())
-        let samples = fixtures + [unknown]
-        #expect(Set(samples.map { CardView.variant(for: $0.content) }) == [.notification, .generic, .fallback])
+        let longVocab = Item(
+            id: "lv", kind: "vocab", source: "vocab-cron", title: "w", summary: "s",
+            body: .object([
+                "word": .string("pneumonoultramicroscopicsilicovolcanoconiosis"),
+                "ipa": .string("/ˌnjuː.mə.noʊˌʌl.trə.maɪ.krəˈskɒp.ɪkˌsɪl.ɪ.koʊ.vɒlˌkeɪ.noʊ.koʊ.niˈoʊ.sɪs/"),
+                "pos": .string("noun"),
+                "audio_url": .string("https://example.com/a.mp3"),
+                "meanings": .array((1...3).map { .object([
+                    "definition": .string(String(repeating: "a lung disease caused by fine silica dust \($0) ", count: 6)),
+                    "examples": .array([.string(String(repeating: "example sentence ", count: 12))]),
+                ]) }),
+                "context": .string(String(repeating: "a long context sentence taken from a book ", count: 20)),
+                "synonyms": .array((1...30).map { .string("synonym\($0)") }),
+                "antonyms": .array((1...30).map { .string("antonym\($0)") }),
+            ]),
+            createdAt: Date()
+        )
+        let samples = fixtures + [unknown, longVocab]
+        #expect(Set(samples.map { CardView.variant(for: $0.content) }) == [.notification, .generic, .vocab, .fallback])
         for item in samples {
             let renderer = ImageRenderer(content: CardView(item: item))
             let image = try #require(renderer.cgImage, "\(item.kind)")
