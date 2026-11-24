@@ -129,18 +129,13 @@ pub async fn post(mut req: Request, env: &Env) -> Result<Response> {
 #[derive(Debug, Deserialize)]
 struct TickResult {
     status: String,
-    #[serde(default)]
-    word: Option<String>,
 }
 
 /// The one log line of a tick, from the database's answer. It carries the status
 /// and never the word's content.
 fn tick_log_line(result: &Value) -> String {
     match serde_json::from_value::<TickResult>(result.clone()) {
-        Ok(tick) => {
-            let _ = &tick.word;
-            format!("vocab.tick status={}", sanitize(&tick.status))
-        }
+        Ok(tick) => format!("vocab.tick status={}", sanitize(&tick.status)),
         Err(_) => "vocab.tick status=unknown".to_owned(),
     }
 }
