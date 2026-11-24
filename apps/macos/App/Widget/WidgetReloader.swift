@@ -62,8 +62,10 @@ final class WidgetReloader {
         guard started, let inbox else { return }
         // Tracking fires once per registration, so register again before doing anything else.
         observe()
+        // Read the inbox before taking the time, so the time is close to when the log line is written.
+        let pending = inbox.pending()
         let time = now()
-        let snapshot = WidgetSnapshot.make(items: env.store.items, pending: inbox.pending(), now: time)
+        let snapshot = WidgetSnapshot.make(items: env.store.items, pending: pending, now: time)
         let gap = policy.lastReloadAt
         let firstReload = gap == nil
         switch policy.offer(snapshot, at: time) {
@@ -99,9 +101,11 @@ final class WidgetReloader {
         }
     }
 
+    /// Logs before asking WidgetKit: the count script measures the gap between requests from the log
+    /// timestamps, so they must track the policy's times and not how long the reload call takes.
     private func perform(reason: String, since previous: Date?, at time: Date) {
-        requestReload(WidgetKind.items)
         let gapMs = previous.map { Int((time.timeIntervalSince($0) * 1000).rounded()) } ?? 0
         Self.logger.notice("widget.reload n_today=\(self.policy.reloadsToday, privacy: .public) reason=\(reason, privacy: .public) gap_ms=\(gapMs, privacy: .public)")
+        requestReload(WidgetKind.items)
     }
 }
