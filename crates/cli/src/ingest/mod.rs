@@ -138,20 +138,17 @@ where
             .lookup(word)
             .and_then(|json| dictionary::map_entry(word, &json));
         match looked_up {
-            Ok(body) => {
-                let _ = writeln!(progress, "ok {word}");
-                sink.pending.push(body);
-            }
+            Ok(body) => sink.pending.push((word.clone(), body)),
             Err(reason) => {
                 let _ = writeln!(progress, "skip {word} {reason}");
                 skipped += 1;
             }
         }
-        if let Err(failed) = flush(&mut sink, BATCH_SIZE) {
+        if let Err(failed) = flush(&mut sink, BATCH_SIZE, progress) {
             return with_summary(failed, sink.stored, skipped);
         }
     }
-    if let Err(failed) = flush(&mut sink, 1) {
+    if let Err(failed) = flush(&mut sink, 1, progress) {
         return with_summary(failed, sink.stored, skipped);
     }
 
@@ -175,23 +172,29 @@ struct Sink<'a> {
     origin: &'a str,
     /// `None` in a dry run.
     target: Option<&'a Target>,
-    pending: Vec<VocabBody>,
+    /// Looked-up words with their bodies; reported `ok` once their batch is out.
+    pending: Vec<(String, VocabBody)>,
     /// Every body of a dry run, kept for printing.
     dry_run_bodies: Vec<VocabBody>,
     stored: u64,
 }
 
 /// Sends the pending words once there are at least `min` of them (or, in a dry
-/// run, sets them aside for printing).
-fn flush(sink: &mut Sink, min: usize) -> Result<(), Report> {
+/// run, sets them aside for printing) and reports each as `ok` only after that
+/// succeeded, so a failed batch leaves no word reported as stored.
+fn flush(sink: &mut Sink, min: usize, progress: &mut dyn Write) -> Result<(), Report> {
     if sink.pending.is_empty() || sink.pending.len() < min {
         return Ok(());
     }
+    let (words, bodies): (Vec<String>, Vec<VocabBody>) =
+        std::mem::take(&mut sink.pending).into_iter().unzip();
     match sink.target {
-        Some(target) => sink.stored += post_batch(target, sink.origin, &sink.pending)?,
-        None => sink.dry_run_bodies.append(&mut sink.pending),
+        Some(target) => sink.stored += post_batch(target, sink.origin, &bodies)?,
+        None => sink.dry_run_bodies.extend(bodies),
     }
-    sink.pending.clear();
+    for word in words {
+        let _ = writeln!(progress, "ok {word}");
+    }
     Ok(())
 }
 
@@ -527,7 +530,7 @@ mod tests {
         assert_eq!(report.stdout.as_deref(), Some("stored 4, skipped 1"));
         assert_eq!(
             progress,
-            "ok serendipity\nok candid\nskip resilient missing ipa\nok wandered\nok benevolent\n"
+            "skip resilient missing ipa\nok serendipity\nok candid\nok wandered\nok benevolent\n"
         );
         let posts = server.posts();
         assert_eq!(posts.len(), 1);
@@ -678,5 +681,33 @@ mod tests {
         assert_eq!(report.code, 1);
         assert_eq!(report.stdout.as_deref(), Some("stored 25, skipped 0"));
         assert!(report.stderr.unwrap().starts_with("HTTP 500"));
+    }
+
+    #[test]
+    fn a_word_is_reported_ok_only_after_its_batch_is_stored() {
+        let count = Arc::new(Mutex::new(0));
+        let c = count.clone();
+        let server = FakeServer::start(move |r| {
+            if r.method == "POST" {
+                let mut n = c.lock().unwrap();
+                *n += 1;
+                return if *n == 1 {
+                    (200, r#"{"stored":25}"#.into())
+                } else {
+                    (500, "boom".into())
+                };
+            }
+            (200, json!([{ "phonetic": "/x/", "meanings": [{ "partOfSpeech": "noun", "definitions": [{ "definition": "d" }] }] }]).to_string())
+        });
+        let (report, progress) = run(&server, &distinct_words(30), true);
+
+        assert_eq!(report.code, 1);
+        let ok: Vec<&str> = progress.lines().filter(|l| l.starts_with("ok ")).collect();
+        assert_eq!(ok.len(), 25, "{progress}");
+        // The last five words were in the batch the server refused.
+        for refused in ["waz", "wba", "wbb", "wbc", "wbd"] {
+            assert!(!progress.contains(&format!("ok {refused}")), "{progress}");
+        }
+        assert!(ok.contains(&"ok waa") && ok.contains(&"ok way"), "{progress}");
     }
 }
