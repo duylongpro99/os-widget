@@ -11,7 +11,7 @@ Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `
 | `read` | Lần đầu FAIL: không có lần bấm nào tới nút (xem Phát hiện 1). Chạy lại PASS: intent → rút hộp thư 214 ms → `item.read` seq 478 |
 | `delete` | Lần đầu FAIL: thao tác làm trong danh sách của app, không qua widget (Phát hiện 1). Chạy lại PASS: intent → rút hộp thư 218 ms → `item.deleted` seq 484 |
 | `reload` | PASS: 5 mục trong 3 s → 2 reload cách 5146 ms, timeline cuối đúng mục cuối; vòng sync `new=0` không kèm reload |
-| `offline` (FR-20) | PASS (lượt thứ hai, 17:15–17:16): bấm khi mất mạng → widget mờ ngay, app rút hộp thư khi offline, `sync.queue_sent … 204` 0,4 s sau khi có mạng lại. Lượt đầu (17:02–17:12) hết giờ vì operator chưa tắt mạng |
+| `offline` (FR-20) | PASS (lượt thứ hai, 17:15–17:16): bấm khi mất mạng → widget mờ ngay, app rút hộp thư khi offline, `sync.queue_sent … 204` 0,4 s sau khi có mạng lại. Operator xác nhận hàng mờ ngay khi bấm lúc offline (D27 "A"). Lượt đầu (17:02–17:12) hết giờ vì operator chưa tắt mạng |
 | Checklist 1–6 | Đạt (mục 3 và 4 có bằng chứng log, xem bảng checklist) |
 | Checklist 8 (`acceptance-menu-bar.sh 1`, `6`) | PASS, popup `latency_ms=637`; thẻ `vocab` hiện tiêu đề và tóm tắt |
 | Checklist 7 (một đêm) và `day` | Chờ session kết thúc, xem [reload-day.md](./reload-day.md) |
