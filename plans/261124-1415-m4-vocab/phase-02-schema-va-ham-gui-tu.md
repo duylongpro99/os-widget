@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Schema vocab_words, settings và hàm gửi từ"
-status: pending
+status: completed
 priority: P1
 effort: "4h"
 dependencies: []
