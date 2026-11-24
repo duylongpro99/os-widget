@@ -19,6 +19,28 @@ pub async fn rows<T: DeserializeOwned>(
     body: Option<String>,
     prefer: Option<&str>,
 ) -> Result<Vec<T>> {
+    send(env, method, path, body, prefer).await?.json().await
+}
+
+/// Calls the Postgres function `name` through PostgREST and returns its result.
+///
+/// A function that returns a scalar or a JSON object answers with that value,
+/// not with an array of rows, so this is not [`rows`]. Failures are handled as
+/// in [`rows`].
+pub async fn rpc<T: DeserializeOwned>(env: &Env, name: &str, args: String) -> Result<T> {
+    send(env, Method::Post, &format!("rpc/{name}"), Some(args), None)
+        .await?
+        .json()
+        .await
+}
+
+async fn send(
+    env: &Env,
+    method: Method,
+    path: &str,
+    body: Option<String>,
+    prefer: Option<&str>,
+) -> Result<worker::Response> {
     let base = env.var("SUPABASE_URL")?.to_string();
     let key = env.secret("SUPABASE_SERVICE_ROLE_KEY")?.to_string();
 
@@ -48,7 +70,7 @@ pub async fn rows<T: DeserializeOwned>(
         worker::console_error!("supabase {status}: {text}");
         return Err(Error::RustError(UPSTREAM_FAILURE.into()));
     }
-    resp.json().await
+    Ok(resp)
 }
 
 /// Percent-encodes a query value, keeping only RFC 3986 unreserved characters.
