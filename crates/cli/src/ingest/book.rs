@@ -49,7 +49,7 @@ pub fn candidates(text: &str, min_length: usize, max: usize) -> Vec<Candidate> {
     let usage = count_words(&sentences);
     let common = common_words(&usage);
 
-    let mut chosen: Vec<(usize, Candidate)> = Vec::new();
+    let mut qualifying: Vec<(usize, &String)> = Vec::new();
     for (word, used) in &usage {
         let (Some(position), Some(_)) = (used.first_lower, used.first_lower_sentence) else {
             continue;
@@ -61,18 +61,20 @@ pub fn candidates(text: &str, min_length: usize, max: usize) -> Vec<Candidate> {
         {
             continue;
         }
-        if let Some(context) = context_for(&sentences, word) {
-            chosen.push((
-                position,
-                Candidate {
-                    word: word.clone(),
-                    context,
-                },
-            ));
-        }
+        qualifying.push((position, word));
     }
-    chosen.sort_by_key(|(position, _)| *position);
-    chosen.into_iter().take(max).map(|(_, c)| c).collect()
+    qualifying.sort_by_key(|(position, _)| *position);
+    // Quote sentences only for the words that are kept: finding one scans the book.
+    qualifying
+        .into_iter()
+        .filter_map(|(_, word)| {
+            context_for(&sentences, word).map(|context| Candidate {
+                word: word.clone(),
+                context,
+            })
+        })
+        .take(max)
+        .collect()
 }
 
 fn count_words(sentences: &[String]) -> HashMap<String, Usage> {
