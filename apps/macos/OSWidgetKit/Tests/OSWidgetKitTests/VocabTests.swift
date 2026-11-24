@@ -147,7 +147,12 @@ struct VocabTests {
     @Test func audioThatDoesNotStartInTimeIsSpoken() async throws {
         let (pronouncer, audio, speech) = Self.pronouncer(timeout: .milliseconds(50))
         pronouncer.pronounce(word: "serendipity", audioURL: "https://example.com/a.mp3")
-        try await Task.sleep(for: .milliseconds(300))
+        // The timeout runs on the main actor, which a busy test run may hold for a while, so wait for the
+        // fallback instead of sleeping a fixed time.
+        let deadline = ContinuousClock.now + .seconds(5)
+        while speech.spoken.isEmpty, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         #expect(speech.spoken == ["serendipity"])
         audio.send(.started)
         #expect(speech.spoken == ["serendipity"])
