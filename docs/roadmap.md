@@ -95,7 +95,7 @@ Thêm: `GET /events` giới hạn 100 sự kiện mỗi trang và từ chối `l
 | 6 | Đạt. Mục `vocab` (app chưa có view riêng) hiện `title` và `summary` bằng view dự phòng; `kind` không tồn tại có unit test. |
 | Focus | Đạt. Popup tự mở khi đang gõ TextEdit: `lsappinfo front` là TextEdit trước và sau khi popup hiện, ký tự gõ vẫn vào TextEdit. |
 
-Phát hiện chưa sửa: danh sách mục không tự đóng khi bấm sang app khác, nên popup bị chặn tới khi người dùng đóng danh sách (chi tiết trong báo cáo nghiệm thu).
+Phát hiện khi nghiệm thu và đã sửa: danh sách mục không tự đóng khi bấm sang app khác, nên popup bị chặn tới khi người dùng đóng danh sách; app nay tự đóng danh sách khi mất active hoặc khi có cú bấm ở app khác (chi tiết trong báo cáo nghiệm thu).
 
 Còn chờ: đăng xuất rồi đăng nhập lại (app tự chạy), một đêm ngủ máy (bắt kịp sau khi thức), và kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30). App đang theo nhánh "A đạt"; nếu A trượt, cách ký và cài hoặc vị trí kho có thể đổi (xem plan M2, mục "Nhánh theo kết quả thử nghiệm").
 

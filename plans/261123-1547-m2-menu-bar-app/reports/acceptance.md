@@ -17,7 +17,7 @@ Còn chờ operator: đăng xuất rồi đăng nhập lại (app tự chạy, k
 
 - Ngày chạy: 2026-11-23 22:40 đến 2026-11-24 09:10 (Asia/Saigon), trên MacBook.
 - macOS 27.2.1 (26B131); Xcode 27.2 (27B52); xcodegen 2.48.0.
-- Mã app: nhánh `macos-acceptance`, commit `804e582` (mã của `main` 27b582b cộng bản sửa menu Edit, xem Ghi chú). Script nghiệm thu: commit `d3d7d6f`.
+- Mã app khi chạy nghiệm thu: nhánh `macos-acceptance`, commit `804e582` (mã của `main` 27b582b cộng bản sửa menu Edit, xem Ghi chú). Script nghiệm thu: commit `d3d7d6f`. Ngày 2026-11-24 09:16 cài lại từ commit `d9e8118` (bản sửa danh sách không tự đóng, xem Ghi chú), cùng cách build, cùng chứng chỉ và entitlement.
 - Build Release bằng `xcodebuild -allowProvisioningUpdates`, derived data ngoài repo, copy vào `/Applications/OSWidget.app`. Ký Apple Development của Personal Team `22LZWPB3XL`, dùng lại chứng chỉ có sẵn: số identity ký trước và sau không đổi (một Apple Development), không chứng chỉ nào được tạo hay thu hồi.
 - `codesign --verify --deep --strict` đạt. Entitlement: `app-sandbox`, `network.client`, `application-groups` = `22LZWPB3XL.os-widget` (thêm `get-task-allow` như mọi bản ký Apple Development).
 - Đồng hồ: `sntp time.apple.com` lệch +0,0017 s (2026-11-23 22:42) và −0,00005 s (2026-11-24 09:10), không đáng kể so với `latency_ms`.
@@ -102,27 +102,43 @@ cleanup: DELETE /items/c45f0a84-5a63-4a4a-914f-134a5a3aced5 -> 204
 
 ## Checklist bằng mắt
 
-Operator trả lời (qua session giám sát, 2026-11-24 khoảng 09:05): "tôi làm xong rồi, chỉ có bước này báo fail … nhưng thực tế popup vẫn hiện". Theo câu đó, mục 1–9 được ghi là đạt; session giám sát đã hỏi xác nhận từng mục nhưng chưa có trả lời riêng từng mục.
+Operator trả lời qua session giám sát, nguyên văn: lúc khoảng 09:05 ngày 2026-11-24 "tôi làm xong rồi, chỉ có bước này báo fail" (chỉ bước focus trượt ở lần chạy đầu), và lúc 09:3x sau khi session giám sát hỏi lại từng mục: "gõ vẫn bình thường, checklist 1–9 đều đạt".
 
 | # | Mục | Kết quả |
 |---|---|---|
-| 1 | Bấm liên kết trong thẻ chỉ mở liên kết đó, mục thành đã đọc | Đạt (theo câu trả lời chung) |
-| 2 | Bấm icon khi danh sách đang mở thì danh sách đóng | Đạt (theo câu trả lời chung) |
-| 3 | Menu chuột phải: dấu tích đúng và đổi khi bấm | Đạt (theo câu trả lời chung) |
-| 4 | Giao diện sáng và tối | Đạt (theo câu trả lời chung) |
-| 5 | Popup tự đóng sau 30 giây, dừng đếm khi chuột trong popup, tự đóng không đánh dấu đã đọc | Đạt (theo câu trả lời chung) |
-| 6 | "+N mục khác" đóng popup và mở danh sách | Đạt (theo câu trả lời chung) |
-| 7 | Popup hiện trên app toàn màn hình | Đạt (theo câu trả lời chung) |
-| 8 | Panel vừa nội dung sau khi ảnh tải xong | Đạt (theo câu trả lời chung) |
-| 9 | Icon trên thanh menu, không có icon Dock | Đạt (theo câu trả lời chung; không có icon Dock cũng xác nhận bằng `lsappinfo`) |
+| 1 | Bấm liên kết trong thẻ chỉ mở liên kết đó, mục thành đã đọc | Đạt |
+| 2 | Bấm icon khi danh sách đang mở thì danh sách đóng | Đạt |
+| 3 | Menu chuột phải: dấu tích đúng và đổi khi bấm | Đạt |
+| 4 | Giao diện sáng và tối | Đạt |
+| 5 | Popup tự đóng sau 30 giây, dừng đếm khi chuột trong popup, tự đóng không đánh dấu đã đọc | Đạt |
+| 6 | "+N mục khác" đóng popup và mở danh sách | Đạt |
+| 7 | Popup hiện trên app toàn màn hình | Đạt |
+| 8 | Panel vừa nội dung sau khi ảnh tải xong | Đạt |
+| 9 | Icon trên thanh menu, không có icon Dock | Đạt (không có icon Dock cũng xác nhận bằng `lsappinfo`) |
 | 10 | Đăng xuất rồi đăng nhập lại: app tự chạy | Chờ operator |
 | 11 | Ngủ qua đêm: mục trong đêm có trong danh sách, có sync sau khi thức | Chờ operator |
 | 12 | Tiêu chí 4 | Hoãn: chưa có máy thứ hai |
 
+## Kiểm lại bản sửa danh sách
+
+Ngày 2026-11-24 khoảng 09:20, trên bản cài từ commit `d9e8118`. Operator kiểm ba việc: (1) mở danh sách rồi bấm vào TextEdit thì danh sách đóng; (2) bấm icon hai lần thì lần đầu mở, lần sau đóng; (3) publish một mục khi danh sách đang đóng thì popup hiện. Operator trả lời (ghi vào ledger của session giám sát), nguyên văn: "1 đạt / 2 đạt / 3 đạt".
+
+Log của app trong lúc kiểm:
+
+```text
+09:18:32.254 list.shown active=false
+09:19:44.080 list.closed reason=outside_click
+09:20:17.032 list.shown active=false
+09:20:31.220 popup.shown id=e3100525-7b3b-4cbc-8026-d381abd143bc others=0 latency_ms=1043
+09:21:01.224 popup.closed reason=timeout
+```
+
+`active=false` ở cả hai lần mở chứng minh nguyên nhân: `NSApp.activate()` không làm app agent thành active, nên popover `.transient` không có sự kiện nào để tự đóng; danh sách nay đóng nhờ cú bấm ở app khác (`outside_click`). Lần đóng thứ hai (bấm icon) không có dòng `list.closed`, tức AppKit tự đóng popover trước khi hành động của icon chạy; danh sách không mở lại (không có `list.shown` thứ ba), đúng như operator thấy. Mục thử đã xoá (204).
+
 ## Ghi chú
 
 - Lỗi tìm thấy khi cấu hình và đã sửa trên nhánh: ô trong cửa sổ Cài đặt không nhận ⌘V. App agent tự dựng `NSApplication` và không có main menu, nên AppKit không có mục menu nào chuyển phím tắt sửa chữ tới ô nhập. Sửa bằng main menu ẩn có menu Edit chuẩn (commit `804e582`); operator nhập được cấu hình sau khi cài lại.
-- Phát hiện cho review, chưa sửa: danh sách mục không tự đóng khi bấm sang app khác. Ở lần chạy focus đầu, operator bấm vào TextEdit nhưng danh sách vẫn mở (câu hỏi "danh sách có còn mở khi gõ TextEdit không", operator trả lời nguyên văn: "không" theo nghĩa danh sách không đóng, ghi D4 ở session giám sát). Hậu quả: `isListOpen` vẫn đúng nên mọi popup bị chặn (`list_open`) cho tới khi người dùng tự đóng danh sách. Đọc mã (`App/MenuBar/MenuBarController.swift`): popover dùng `behavior = .transient` và `showList()` gọi `NSApp.activate()` rồi `popover.show`; không có gì khác đóng popover (không theo dõi `didResignActive`, không có global event monitor). Nguyên nhân nghi ngờ, chưa chứng minh: popover `.transient` chỉ đóng khi app nhận được cú bấm bên ngoài hoặc bị mất trạng thái active; với app agent trên macOS 14 trở lên, `NSApp.activate()` là yêu cầu hợp tác và có thể không làm app thành active, nên bấm vào app khác không làm app mất active và popover không đóng. Hướng sửa (không làm ở nhánh này vì không phải sửa một dòng đã chứng minh): đóng popover khi app mất active hoặc khi có cú bấm chuột toàn cục bên ngoài (`NSEvent.addGlobalMonitorForEvents`), và kiểm lại bằng tay.
+- Phát hiện khi nghiệm thu, đã sửa ở commit `d9e8118`: danh sách mục không tự đóng khi bấm sang app khác. Ở lần chạy focus đầu, operator bấm vào TextEdit nhưng danh sách vẫn mở (câu hỏi "danh sách có còn mở khi gõ TextEdit không", operator trả lời nguyên văn: "không" theo nghĩa danh sách không đóng, ghi D4 ở session giám sát). Hậu quả: `isListOpen` vẫn đúng nên mọi popup bị chặn (`list_open`) cho tới khi người dùng tự đóng danh sách. Đọc mã (`App/MenuBar/MenuBarController.swift`): popover dùng `behavior = .transient` và `showList()` gọi `NSApp.activate()` rồi `popover.show`; không có gì khác đóng popover (không theo dõi `didResignActive`, không có global event monitor). Nguyên nhân nghi ngờ, chưa chứng minh: popover `.transient` chỉ đóng khi app nhận được cú bấm bên ngoài hoặc bị mất trạng thái active; với app agent trên macOS 14 trở lên, `NSApp.activate()` là yêu cầu hợp tác và có thể không làm app thành active, nên bấm vào app khác không làm app mất active và popover không đóng. Cách sửa: app tự đóng danh sách khi mất trạng thái active (`didResignActiveNotification`) và khi có cú bấm chuột ở app khác trong lúc danh sách mở (`NSEvent.addGlobalMonitorForEvents`, gỡ khi danh sách đóng); cú bấm trúng icon thanh menu bị bỏ qua để icon vẫn bật tắt danh sách (quy tắc này có unit test `ItemListDismissal`). App ghi `list.shown active=…` và `list.closed reason=icon|resign_active|outside_click|menu`, để biết app có thành active khi mở danh sách không. Kiểm lại bằng tay: xem mục "Kiểm lại bản sửa danh sách".
 - Quan sát cho review, chưa sửa: số "+N" của popup cộng dồn khi popup còn mở (others=0→4 trong lúc chạy `acceptance-server.sh`) và vẫn đếm cả mục đã bị xoá trong lúc đó (`PopupPolicy.merge`). Khi đổi cấu hình, log có `realtime.state send_failed` rồi `stopped` trước khi join lại trong 1 s, không ảnh hưởng.
 - Dòng log mức info của app chỉ giữ trong bộ nhớ một thời gian ngắn; `log show` sau vài phút có thể không còn. Bằng chứng nằm trong đầu ra script lúc chạy.
 - Mọi mục thử dùng `source: "acceptance-m2"`, `ttl` 3600 và đã được xoá (204).
