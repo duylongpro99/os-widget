@@ -82,7 +82,7 @@ struct CompactCardLayout: View {
     let lines: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(verbatim: item.title)
                 .font(.subheadline)
                 .fontWeight(item.isRead ? .regular : .semibold)
