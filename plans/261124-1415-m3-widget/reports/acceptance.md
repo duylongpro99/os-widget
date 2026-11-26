@@ -1,6 +1,6 @@
 # Báo cáo nghiệm thu Giai đoạn 3: Widget (phần đầu của Phase 6)
 
-Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `scripts/acceptance-widget.sh`, checklist của operator trừ mục 7, và bắt đầu đếm reload 24 giờ. Kết luận đếm ngày, mục 7, tài liệu và trạng thái phase do session kết thúc làm sau 24 giờ.
+Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `scripts/acceptance-widget.sh`, checklist của operator trừ mục 7, và bắt đầu đếm reload 24 giờ. Kết luận đếm ngày và tài liệu do session `m3-widget-p06-finish` làm ngày 2026-11-26; mục 7 và trạng thái phase còn chờ.
 
 ## Tóm tắt
 
@@ -14,7 +14,8 @@ Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `
 | `offline` (FR-20) | PASS (lượt thứ hai, 17:15–17:16): bấm khi mất mạng → widget mờ ngay, app rút hộp thư khi offline, `sync.queue_sent … 204` 0,4 s sau khi có mạng lại. Operator xác nhận hàng mờ ngay khi bấm lúc offline (D27 "A"). Lượt đầu (17:02–17:12) hết giờ vì operator chưa tắt mạng |
 | Checklist 1–6 | Đạt (mục 3 và 4 có bằng chứng log, xem bảng checklist) |
 | Checklist 8 (`acceptance-menu-bar.sh 1`, `6`) | PASS, popup `latency_ms=637`; thẻ `vocab` hiện tiêu đề và tóm tắt |
-| Checklist 7 (một đêm) và `day` | Chờ session kết thúc, xem [reload-day.md](./reload-day.md) |
+| `day` (D9) | FAIL: 45 yêu cầu reload trên ngưỡng 40, cả 45 thuộc phần nghiệm thu, phần dùng thật 0; không cặp nào dưới 5 s (nhỏ nhất 5006 ms), 100% có timeline trong 5 s. Chi tiết và đề xuất ở [reload-day.md](./reload-day.md) |
+| Checklist 7 (một đêm) | chờ: đêm 26–27/11, thẻ vocab từ cron |
 
 Mốc đếm 24 giờ: bắt đầu 2026-11-24 15:28:48; `log stream` PID 6328 ghi `~/Library/Logs/os-widget/widget-day-20261124.ndjson`.
 
@@ -114,7 +115,7 @@ PASS offline tap drained while offline, read_at 2026-11-24T10:16:17.846+00:00 on
 | 4 | Bấm khi app đã thoát: widget cập nhật ngay; mở lại app thì thao tác được gửi | Đạt. App thoát khoảng 16:32:12; 16:32:14.721 `widget.intent action=read` (hàng `generic`) → timeline `unread` 6→5 sau 30 ms, app không chạy. Operator chưa mở lại app nên session này mở lúc 16:40:41: `widget.inbox_drained count=1` ngay khi khởi động, `sync.queue_sent … status=204`, server `item.read` seq 493 |
 | 5 | Bấm thân mục không làm gì | Đạt. D22 "A" |
 | 6 | Sáng và tối đều đọc được | Đạt. D22 "A" |
-| 7 | Sau một đêm ngủ máy | Chờ session kết thúc |
+| 7 | Sau một đêm ngủ máy | chờ: đêm 26–27/11, thẻ vocab từ cron |
 | 8 | Popup và danh sách M2 vẫn chạy | Đạt. `acceptance-menu-bar.sh 1`: `PASS 1 … latency_ms=637`; `6`: `PASS 6 vocab item … shown with title and summary`. D24 "A + title and summary must show". Câu trả lời mục 6 tới trước khi script publish mục `vocab m2-…164848`, nên operator thực ra nhìn thẻ `vocab m3-…162821` của checklist (cùng tóm tắt); hai mục cùng đường hiển thị |
 
 ## Phát hiện
@@ -127,9 +128,8 @@ PASS offline tap drained while offline, read_at 2026-11-24T10:16:17.846+00:00 on
 6. Sửa script trong lúc chạy: mục hiện trên widget (`read`, `delete`) không được ghi để xoá khi thoát vì hàm chạy trong subshell; hai mục sót của lượt `all` đã xoá tay (204), script đã sửa. Thời gian chờ lần bấm đặt được bằng `TAP_WAIT_SECONDS`.
 7. Hai thư mục tạm có từ trước session này còn trong `$TMPDIR`: `tmp.zgy5yrxwfk` (08:46, có file `client`, có thể là file header token của một lần chạy script nghiệm thu khác) và `tmp.5oWc62RIeA` (14:37). Không phải của session này nên không xoá; nên kiểm và xoá.
 
-## Còn lại cho session kết thúc
+## Còn lại
 
-- Sau 2026-11-25 15:28:48: `acceptance-widget.sh day --input <file đã cắt về 24 giờ>`, dừng `log stream` (PID 6328), điền [reload-day.md](./reload-day.md).
-- Checklist mục 7 (một đêm ngủ máy).
-- `docs/architecture.md` §6, §9 và `docs/roadmap.md` Giai đoạn 3; trạng thái Phase 6 và plan.
-
+- Checklist mục 7: chờ: đêm 26–27/11, thẻ vocab từ cron. Đêm 24–25/11 không có mục nào được publish (mọi `sync.applied` sau 17:17 có `new=0`), nên file log của đêm đó không chứng minh được mục này. Nguồn đánh giá là `~/Library/Logs/os-widget/widget-day-20261124.ndjson`, vẫn do `log stream` PID 6328 ghi; chưa được dừng.
+- Kết luận D9 và việc có tính lại ngưỡng hay không: chờ quyết định của operator (xem [reload-day.md](./reload-day.md)).
+- Trạng thái Phase 6 và plan chưa đổi; session review sau đêm 26–27/11 đánh giá mục 7 rồi merge.
