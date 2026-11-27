@@ -86,7 +86,9 @@ pg_env=()
 if [[ -n "${SUPABASE_DB_URL:-}" ]]; then
   re='^postgres(ql)?://([^:@/]+)(:([^@/]*))?@([^:/?]+)(:([0-9]+))?/([^?]+)(\?(.*))?$'
   [[ "$SUPABASE_DB_URL" =~ $re ]] || { echo "SUPABASE_DB_URL is not a Postgres URI with user, password, host, port and database" >&2; exit 2; }
-  decode() { local s="${1//+/ }"; printf '%b' "${s//%/\\x}"; }
+  # Percent-decoding only, as libpq does: a "+" stays a "+", and a literal
+  # backslash is escaped so printf does not read it as an escape sequence.
+  decode() { local s="${1//\\/\\\\}"; printf '%b' "${s//%/\\x}"; }
   pg_env=(PGUSER="$(decode "${BASH_REMATCH[2]}")" PGPASSWORD="$(decode "${BASH_REMATCH[4]}")"
     PGHOST="${BASH_REMATCH[5]}" PGPORT="${BASH_REMATCH[7]:-5432}" PGDATABASE="$(decode "${BASH_REMATCH[8]}")"
     PGSSLMODE=require PGCONNECT_TIMEOUT=15)
