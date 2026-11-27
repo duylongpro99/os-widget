@@ -1,6 +1,6 @@
 # Roadmap: os-widget
 
-Cập nhật: 2026-11-23. Yêu cầu nằm ở [prd.md](prd.md), thiết kế ở [architecture.md](architecture.md).
+Cập nhật: 2026-11-27. Yêu cầu nằm ở [prd.md](prd.md), thiết kế ở [architecture.md](architecture.md).
 
 Roadmap xếp theo thứ tự và điều kiện hoàn thành, không gắn ngày. Mỗi giai đoạn kết thúc bằng một thứ chạy được và kiểm chứng được.
 
@@ -97,7 +97,9 @@ Xong ngày 2026-11-24 (tiêu chí 4 hoãn tới khi có máy thứ hai, theo quy
 
 Phát hiện khi nghiệm thu và đã sửa: danh sách mục không tự đóng khi bấm sang app khác, nên popup bị chặn tới khi người dùng đóng danh sách; app nay tự đóng danh sách khi mất active hoặc khi có cú bấm ở app khác (chi tiết trong báo cáo nghiệm thu).
 
-Còn chờ: đăng xuất rồi đăng nhập lại (app tự chạy), một đêm ngủ máy (bắt kịp sau khi thức), và kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30). App đang theo nhánh "A đạt"; nếu A trượt, cách ký và cài hoặc vị trí kho có thể đổi (xem plan M2, mục "Nhánh theo kết quả thử nghiệm").
+Một đêm ngủ máy (bắt kịp sau khi thức): đạt. Đêm 2026-11-26 tới 27 máy ngủ lúc 22:07:16 và thức lúc 08:56:12; vòng sync đầu sau khi thức (08:56:13) áp 2 mục mới, xem mục 7 của [báo cáo nghiệm thu widget](../plans/261124-1415-m3-widget/reports/acceptance.md).
+
+Còn chờ: đăng xuất rồi đăng nhập lại (app tự chạy), và kết quả kiểm ngày 8 của thử nghiệm A (2026-11-30). App đang theo nhánh "A đạt"; nếu A trượt, cách ký và cài hoặc vị trí kho có thể đổi (xem plan M2, mục "Nhánh theo kết quả thử nghiệm").
 
 Ghi chú cho Giai đoạn 3: thử nghiệm B cho thấy widget vẽ lại trong khoảng 0,1 s khi app được phép reload, nên giữ WidgetKit; app phải gộp các lần reload, không quá một lần mỗi 5 giây, và ngân sách reload khi app chạy nền còn phải đo. View thẻ và kho nằm trong `OSWidgetKit`, M2 không gọi `WidgetCenter`, nên nếu cần vẫn chuyển được sang cửa sổ desktop dùng lại package này. Ở M2 chỉ app ghi `store.json`; nếu nút trong widget ghi hàng đợi thì Giai đoạn 3 phải phối hợp ghi giữa hai tiến trình.
 
@@ -142,7 +144,23 @@ Hoãn sang Giai đoạn 5: kiểm thao tác trong widget đồng bộ sang Mac m
 4. Đổi chu kỳ trong `settings` có hiệu lực mà không phải deploy lại.
 5. Khi hết từ, hệ thống dừng hoặc quay vòng đúng theo cấu hình.
 
-Nạp từ API làm trước vì đơn giản hơn và đủ để có bộ từ dùng được; nạp từ sách cần thêm bước tách từ và chọn từ đáng học. Còn phải chọn API từ điển và định dạng sách (mục 11 của PRD).
+Nạp từ API làm trước vì đơn giản hơn và đủ để có bộ từ dùng được; nạp từ sách cần thêm bước tách từ và chọn từ đáng học. API từ điển là Free Dictionary API, sách ở dạng `.txt` (mục 11 của PRD).
+
+### Kết quả
+
+Xong ngày 2026-11-27. Server (bảng `vocab_words` và `settings`, `POST /vocab/words`, Cron Trigger `*/5 * * * *` gọi hàm SQL `vocab_tick`) chạy trên bản deploy từ 2026-11-24; bộ từ thật gồm 62 từ (17 từ mẫu nạp qua API và 45 từ của "Pride and Prejudice"). App có thẻ `vocab` cài lại trên MacBook ngày 2026-11-27 21:53:57. Thiết kế ở [architecture.md](architecture.md#44-bộ-từ-vựng) §4.4 và §6 ("Thẻ từ vựng đã làm"); đầu ra ở [nghiệm thu server](../plans/261124-1415-m4-vocab/reports/acceptance-server.md) (`scripts/acceptance-vocab.sh`) và [nghiệm thu thẻ](../plans/261124-1415-m4-vocab/reports/acceptance.md).
+
+| Điều kiện | Kết quả |
+|---|---|
+| 1. Tiêu chí 5 (PRD §10.5) | Đạt. Thẻ đủ mọi trường hiện đủ ở popup và danh sách; bấm nút phát `audio_url` (`pronounce.play source=audio`), mục vẫn chưa đọc; thẻ không có `audio_url` đọc bằng bộ đọc hệ thống (`source=speech`); widget hiện bố cục rút gọn ở cỡ vừa và cỡ lớn, không có nút phát âm. Nút được bấm trong danh sách; log không có lần bấm nào trên chính popup, nhưng popup và danh sách dùng cùng view `VocabCardView`. Thẻ do cron gửi không được kiểm bằng tay ở phase này (quyết định của chủ dự án). |
+| 2. Nạp danh sách từ qua API, nạp lại không trùng | Đạt. 17 từ mẫu: `stored 17, skipped 0`. Nạp lại một danh sách 4 từ (3 từ đã có) hai lần: số dòng giữ 62, không có bản trùng. |
+| 3. Nạp sách tạo từ kèm câu ngữ cảnh | Đạt. 50 từ chọn từ "Pride and Prejudice" (`.txt` của Project Gutenberg): `stored 45, skipped 5`, mỗi từ có `context` lấy từ sách. |
+| 4. Đổi chu kỳ không cần deploy | Đạt. Đặt 5 phút: các thẻ cách nhau 300–301 giây từ lần cron kế tiếp; đặt 15 phút: thẻ kế tiếp sau 899 giây. |
+| 5. Hết từ thì dừng hoặc quay vòng theo cấu hình | Đạt. Test pgTAP cục bộ cho cả `stop` và `rotate`; trên live (`rotate`) bộ 62 từ quay vòng hai lần trong một đêm, không gửi lại ngay từ vừa gửi, 0 mục thiếu từ hay nghĩa. |
+
+CPU đo trên bản deploy (architecture §8): lần chạy cron p50 9 ms, lớn nhất 17 ms; `POST /vocab/words` p50 7 ms, lớn nhất 28 ms; mọi lần `ok`, không lần nào bị chặn, nên không cần đường dự phòng `pg_cron`.
+
+Phát hiện khi nghiệm thu: URL audio của Free Dictionary API (`api.dictionaryapi.dev/media/...`) hiện trả 403, nên thẻ do cron gửi phát âm bằng bộ đọc hệ thống qua đường dự phòng (`pronounce.fallback reason=load`); đường phát file được kiểm bằng một thẻ publish tay. Với bản Gutenberg đầy đủ, 50 từ chọn được đều nằm trong lời tựa, nên lần nạp sách dùng bản đã cắt tay phần lời tựa.
 
 ## Giai đoạn 5: Hoàn thiện
 
@@ -165,6 +183,6 @@ Nạp từ API làm trước vì đơn giản hơn và đủ để có bộ từ
 
 ## Việc cần quyết định trước khi bắt đầu
 
-1. API từ điển và định dạng sách dùng để nạp bộ từ (ảnh hưởng giai đoạn 4, không chặn các giai đoạn trước).
+Không còn việc nào.
 
-Đã chốt: hành vi popup theo FR-6 đến FR-10c của PRD, thời gian popup hiển thị là 30 giây; thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl` là 7 ngày (2026-11-23).
+Đã chốt: hành vi popup theo FR-6 đến FR-10c của PRD, thời gian popup hiển thị là 30 giây; thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl` là 7 ngày (2026-11-23); API từ điển là Free Dictionary API và sách ở dạng `.txt`, EPUB để sau (quyết định của chủ dự án, 2026-11-24; PRD mục 11 câu 1).

@@ -1,6 +1,6 @@
 # Kiến trúc: os-widget
 
-Cập nhật: 2026-11-23. Trạng thái: server (mục 3, 4.1 đến 4.3, 5 phía server) đã chạy trên bản deploy và qua nghiệm thu Giai đoạn 1, xem [roadmap.md](roadmap.md#giai-đoạn-1-server); client (mục 6) và bộ từ vựng (mục 4.4) vẫn là thiết kế. Giai đoạn 0 có kết quả đo ở [roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng). Các điểm còn ghi "chưa kiểm chứng" vẫn chờ giai đoạn 0 hoặc giai đoạn dùng tới chúng. Yêu cầu nằm ở [prd.md](prd.md).
+Cập nhật: 2026-11-27. Trạng thái: server (mục 3, 4.1 đến 4.3, 5 phía server) đã chạy trên bản deploy và qua nghiệm thu Giai đoạn 1, xem [roadmap.md](roadmap.md#giai-đoạn-1-server); app thanh menu và widget (mục 6) đã cài và qua nghiệm thu Giai đoạn 2 và 3; bộ từ vựng (mục 4.4, thẻ `vocab` và phát âm ở mục 6) đã chạy trên bản deploy và qua nghiệm thu Giai đoạn 4, xem [roadmap.md](roadmap.md#giai-đoạn-4-từ-vựng). Giai đoạn 0 có kết quả đo ở [roadmap.md](roadmap.md#giai-đoạn-0-kiểm-chứng). Các điểm còn ghi "chưa kiểm chứng" vẫn chờ giai đoạn 0 hoặc giai đoạn dùng tới chúng. Yêu cầu nằm ở [prd.md](prd.md).
 
 ## 1. Tổng quan
 
@@ -108,7 +108,7 @@ Server sinh `id` (UUID) và `created_at`. Bên gửi không đặt hai trường
 }
 ```
 
-Bắt buộc: `word` (không rỗng), `ipa`, `pos`, `meanings` (ít nhất một nghĩa, mỗi nghĩa có `definition` không rỗng). Tuỳ chọn: `audio_url`, `context`, `examples` trong mỗi nghĩa, `synonyms`, `antonyms`.
+Bắt buộc: `word` (không rỗng, một dòng vì nó thành `title` của thẻ), `ipa` và `pos` (không rỗng, không chỉ có khoảng trắng), `meanings` (ít nhất một nghĩa, mỗi nghĩa có `definition` không rỗng). Tuỳ chọn: `audio_url` (HTTPS), `context`, `examples` trong mỗi nghĩa, `synonyms`, `antonyms`. Các quy tắc này nằm trong `envelope::check_vocab`, dùng chung cho `POST /items`, `POST /vocab/words` và lệnh `ingest`.
 
 **`generic`**: `{ "blocks": [ … ] }`, mỗi block có trường `type`.
 
@@ -143,8 +143,9 @@ Quy tắc URL: `url` của envelope và `url` của block `link` phải bắt đ
 | `GET /events?since=<seq>&limit=<n>` | client | Các sự kiện có `seq` lớn hơn `since`, theo thứ tự tăng dần. `since` bắt buộc, số nguyên ≥ 0. `limit` mặc định 100, giá trị lớn hơn bị hạ về 100, giá trị nhỏ hơn 1 hoặc không phải số nguyên trả 400. Client gọi tiếp với `seq` cuối cùng khi nhận đủ một trang. Sự kiện `item.created` kèm toàn bộ mục trong trường `item`. |
 | `PATCH /items/{id}` | client | Body `{"read": true}` hoặc `{"read": false}`; body khác trả 400. 204 khi mục ở đúng trạng thái yêu cầu (gửi lại không sinh sự kiện mới); 404 khi mục không tồn tại hoặc đã bị xoá. |
 | `DELETE /items/{id}` | client | Xoá mềm. 204 khi mục tồn tại, dù vừa xoá hay đã xoá trước đó (xoá lại không sinh sự kiện); 404 khi không có mục đó. |
+| `POST /vocab/words` | publish | Nạp một lô từ vào `vocab_words` (mục 4.4). Body `{"origin": "<tên sách hoặc API, 1–200 ký tự>", "words": [<body vocab>, …]}` với 1 đến 50 từ; mỗi từ phải qua `envelope::parse_vocab`. Trả 200 `{"stored": <số từ khác nhau đã ghi>}`. Một từ sai thì cả lô không ghi từ nào và trả 400 `{"error": "invalid vocab", "field": "words[3].ipa", "message": "…"}`. |
 
-Token đặt trong header `Authorization: Bearer`. Có hai token tách riêng, lưu dưới dạng secret `PUBLISH_TOKEN` và `CLIENT_TOKEN` của Worker: token publish chỉ gọi được `POST /items`, token client gọi được mọi endpoint còn lại. Thiếu header hoặc token không khớp token nào trả 401; đúng một token nhưng sai loại cho endpoint trả 403. Token được kiểm trước khi định tuyến, nên người không có token không dò được đường dẫn nào tồn tại. Lộ token publish không cho phép đọc nội dung.
+Token đặt trong header `Authorization: Bearer`. Có hai token tách riêng, lưu dưới dạng secret `PUBLISH_TOKEN` và `CLIENT_TOKEN` của Worker: token publish chỉ gọi được `POST /items` và `POST /vocab/words`, token client gọi được mọi endpoint còn lại. Thiếu header hoặc token không khớp token nào trả 401; đúng một token nhưng sai loại cho endpoint trả 403. Token được kiểm trước khi định tuyến, nên người không có token không dò được đường dẫn nào tồn tại. Lộ token publish không cho phép đọc nội dung.
 
 Lỗi trả JSON `{"error": "<mã>"}`. Envelope sai trả 400 với `{"error": "invalid envelope", "field": "<đường dẫn>", "message": "<lý do>"}`, ví dụ `field` là `body.meanings[0]` khi nghĩa đầu tiên thiếu `definition`; `field` rỗng khi lỗi nằm ở gốc envelope, chẳng hạn thiếu `title`, và khi đó `message` nêu tên trường. `id` không phải UUID trả 404 mà không chạm tới Supabase. Supabase lỗi trả 502.
 
@@ -220,19 +221,38 @@ create table vocab_words (
 
 create table settings (
   key   text primary key,
-  value jsonb not null              -- vocab_interval_minutes, vocab_when_exhausted
+  value jsonb not null              -- các khoá vocab_* ở bảng dưới
 );
 ```
 
-- **Nạp chạy trên máy, không chạy trong Worker.** Tách từ khỏi sách và gọi API từ điển để lấy phiên âm, nghĩa, ví dụ là việc nặng và chậm, vượt hạn mức 10 ms CPU. Lệnh `ingest` là một lệnh con của crate `cli`, dùng lại kiểu `vocab` của crate `envelope`, nên mục sai định dạng bị loại trước khi lên server.
-- **Sách cung cấp từ và câu ngữ cảnh; API từ điển bổ sung phần còn thiếu** (phiên âm, nghĩa, từ đồng nghĩa và trái nghĩa). Từ nào không bổ sung đủ trường bắt buộc thì không được nạp.
-- **Khoá chính là `word`**, nên nạp lại không tạo bản trùng. Endpoint `POST /vocab/words` dùng token publish.
-- **Gửi theo chu kỳ bằng Cron Trigger của Worker.** Cron chạy với nhịp cố định ngắn; mỗi lần chạy nó so thời điểm gửi gần nhất với `vocab_interval_minutes` trong bảng `settings` và chỉ gửi khi tới hạn. Đổi chu kỳ vì vậy là sửa một dòng dữ liệu, không phải deploy lại.
-- **Khi hết từ**, cron làm theo `vocab_when_exhausted`: dừng, hoặc đặt lại `sent_at` để quay vòng.
+Schema nằm ở `supabase/migrations/20261124000000_vocab.sql`. Hai bảng không cấp quyền nào cho `anon` và `authenticated` và bật RLS không có chính sách; hai hàm `vocab_upsert` và `vocab_tick` chỉ `service_role` (Worker) gọi được.
 
-Hạn mức Cron Trigger ở gói miễn phí: tối đa 5 Cron Trigger mỗi tài khoản, 10 ms CPU mỗi lần chạy, nhịp nhỏ nhất 1 phút (cú pháp cron có trường phút). Cron của bộ từ chỉ cần một trigger. Vì CPU khi isolate mới khởi động của Worker Rust đã đo được 16–21 ms (mục 8), một lần chạy cron rơi vào isolate mới có thể vượt 10 ms.
+| Khoá `settings` | Giá trị đã chốt | Ý nghĩa |
+|---|---|---|
+| `vocab_enabled` | `true` | Tắt thì cron trả `disabled`. |
+| `vocab_interval_minutes` | `60` | Chu kỳ gửi, 1 phút đến 10 năm. |
+| `vocab_when_exhausted` | `"rotate"` | `"rotate"` (quay vòng) hoặc `"stop"` khi mọi từ đã gửi. |
+| `vocab_priority` | `"normal"` | `priority` của mục `vocab`; `normal` làm popup tự mở. |
+| `vocab_item_ttl_seconds` | `86400` | `ttl` của mục `vocab` (1 ngày), 1 giây đến 1 năm. |
+| `vocab_last_sent_at` | do `vocab_tick` ghi | Thời điểm gửi gần nhất. |
 
-Chưa kiểm chứng: API từ điển nào đủ trường và cho phép dùng miễn phí.
+Giá trị sai kiểu hoặc ngoài khoảng không làm hàm lỗi: hàm dùng giá trị mặc định ở bảng trên và ghi tên khoá vào `warnings` của kết quả.
+
+- **Nạp chạy trên máy, không chạy trong Worker.** Tách từ khỏi sách và gọi API từ điển để lấy phiên âm, nghĩa, ví dụ là việc nặng và chậm, vượt hạn mức 10 ms CPU. Lệnh `os-widget ingest` là một lệnh con của crate `cli`, dựng body bằng kiểu `vocab` của crate `envelope` và kiểm bằng `envelope::check_vocab`, nên mục sai định dạng bị loại trước khi lên server. Từ bị bỏ được in ra màn hình kèm lý do. Lệnh gửi theo lô 25 từ tới `POST /vocab/words` bằng token publish; lô trước đã ghi thì vẫn còn khi lô sau lỗi, và nạp lại là an toàn.
+- **`os-widget ingest words`** tra từng từ ở Free Dictionary API (`https://api.dictionaryapi.dev/api/v2/entries/en`, miễn phí, không cần khoá), tuần tự, cách nhau ít nhất 300 ms, thử lại 429 và 5xx tối đa 3 lần. Ánh xạ: `ipa` là `phonetic`, nếu rỗng thì `phonetics[].text` đầu tiên khác rỗng; nhóm nghĩa có nhiều định nghĩa nhất cho `pos` và tối đa 3 `meanings` (mỗi nghĩa kèm `example` nếu có); `synonyms` và `antonyms` lấy từ nhóm đó trước rồi các nhóm khác, không trùng, tối đa 6; `audio_url` là audio đầu tiên khác rỗng, ưu tiên bản US, chỉ giữ HTTPS. API không có câu ngữ cảnh. Đo trên 20 từ: đủ trường bắt buộc 17/20; có ví dụ 9/20, đồng nghĩa 14/20, trái nghĩa 8/20, audio 15/20 ([báo cáo độ phủ](../plans/261124-1415-m4-vocab/reports/api-coverage.md)).
+- **`os-widget ingest book <file.txt>`** đọc sách văn bản thuần UTF-8. Với bản Project Gutenberg, chỉ lấy phần giữa hai dòng `*** START OF` và `*** END OF`. Chọn tối đa `--max` từ (mặc định 50) dài ít nhất `--min-length` chữ cái (mặc định 5), theo thứ tự xuất hiện đầu tiên: không phải từ chức năng, không thuộc 300 từ gặp nhiều nhất của sách (và không quá một phần mười số từ khác nhau), gặp ít nhất 2 lần và ít nhất một lần viết thường (loại tên riêng), có một câu dài 20 ký tự trở lên để trích. `context` là câu đầu tiên chứa từ viết thường, cắt quanh từ khi dài hơn 240 ký tự. Từ chọn được rồi đi qua cùng bước tra API và gửi theo lô như `ingest words`. Lời tựa nằm trong phần giữa hai dòng mốc, nên sách có lời tựa dài phải cắt tay trước khi nạp. EPUB và PDF chưa làm.
+- **`vocab_upsert(origin, words)`.** Khoá chính là `word` viết thường và bỏ khoảng trắng hai đầu, nên nạp lại không tạo bản trùng; trong một lô, lần xuất hiện cuối thắng. Nạp lại một từ đã có ghi đè `entry` và `origin`, giữ `added_at` và `sent_at` (từ vừa nạp lại không bị gửi sớm). Riêng `context`: nếu bản mới không có mà bản cũ có thì giữ bản cũ, để nạp từ API sau khi nạp từ sách không làm mất câu trong sách.
+- **Gửi theo chu kỳ bằng Cron Trigger của Worker** `*/5 * * * *` (một trigger, khai báo trong `crates/worker/wrangler.toml`). Mỗi lần chạy, Worker chỉ gọi `POST /rest/v1/rpc/vocab_tick` và ghi một dòng log `vocab.tick status=<status>` (không ghi từ). Mọi logic nằm trong hàm SQL `vocab_tick()`, chạy trong một transaction:
+  1. Lấy khoá advisory, nên hai lần chạy chồng nhau không gửi trùng.
+  2. Đọc các khoá `vocab_*` của `settings`. `vocab_enabled` là `false` thì trả `disabled`.
+  3. Chưa tới hạn thì trả `not_due`. Tới hạn khi `now() >= vocab_last_sent_at + vocab_interval_minutes - 1 phút`; phút trừ đi bù cho độ lệch giữa các lần chạy cron.
+  4. Chọn ngẫu nhiên một từ chưa gửi (`sent_at` rỗng). Không còn từ nào: bảng rỗng thì trả `empty`; `vocab_when_exhausted` là `"stop"` thì trả `exhausted`; `"rotate"` thì xoá `sent_at` của mọi từ rồi chọn lại, trừ từ vừa gửi gần nhất (khi bảng có hơn một từ).
+  5. Tạo một mục `items`: `kind` `vocab`, `source` `vocab-cron`, `priority` theo `vocab_priority`, `title` là từ, `summary` là `(<pos>) ` cộng 140 ký tự đầu của nghĩa đầu, `body` là `entry`, `dedupe_key` `vocab:<word>:<phút UTC>`, `expires_at` theo `vocab_item_ttl_seconds`. Trigger có sẵn trên `items` ghi `item.created`, nên client nhận mục `vocab` như mọi mục khác. Khoá `dedupe_key` đã có thì trả `duplicate`.
+  6. Ghi `sent_at` của từ và `vocab_last_sent_at`, trả `sent` kèm `word`, `item_id`, `rotated`.
+
+  Đổi chu kỳ, mức ưu tiên hay cách xử lý khi hết từ vì vậy là sửa một dòng `settings`, có hiệu lực ở lần chạy cron kế tiếp, không phải deploy lại. Đã kiểm trên live: chu kỳ 5 phút cho các thẻ cách nhau 300–301 giây, 15 phút cho 899 giây; bộ 62 từ quay vòng hai lần trong một đêm, không gửi lại ngay từ vừa gửi và không có mục rỗng ([nghiệm thu server](../plans/261124-1415-m4-vocab/reports/acceptance-server.md)).
+
+Hạn mức Cron Trigger ở gói miễn phí: tối đa 5 Cron Trigger mỗi tài khoản, 10 ms CPU mỗi lần chạy, nhịp nhỏ nhất 1 phút. Cron của bộ từ chỉ dùng một trigger. CPU đo được ở mục 8: một số lần chạy vượt 10 ms (isolate lạnh) mà vẫn `ok`. Nếu Cloudflare bắt đầu chặn lần chạy cron vì CPU, cùng hàm `vocab_tick()` được lên lịch bằng `pg_cron` (như `purge_old_rows`) và gỡ Cron Trigger, không phải sửa mã Worker.
 
 ## 5. Giao thức đồng bộ
 
@@ -277,7 +297,7 @@ Chi tiết đáng lưu ý:
 
 - **App là tiến trình duy nhất gọi mạng.** Widget không gọi server. App ghi kho dùng chung rồi yêu cầu WidgetKit làm mới, và chỉ yêu cầu khi nội dung widget thực sự đổi để tiết kiệm hạn mức làm mới.
 - **Nút trong widget** cập nhật kho dùng chung và thêm vào hàng đợi; app gửi hàng đợi lên server.
-- **Phát âm** dùng bộ đọc của hệ thống (`AVSpeechSynthesizer`) cho `word`, hoặc phát `audio_url` nếu có. Chỉ đặt nút phát âm ở popup và danh sách; phát âm thanh từ widget có nhiều báo cáo lỗi.
+- **Phát âm** phát `audio_url` nếu có, không thì đọc `word` bằng bộ đọc của hệ thống (`AVSpeechSynthesizer`). Chỉ đặt nút phát âm ở popup và danh sách; phát âm thanh từ widget có nhiều báo cáo lỗi. Đã làm ở Giai đoạn 4, xem "Thẻ từ vựng đã làm (Giai đoạn 4)" bên dưới.
 - **Chạy khi đăng nhập** bằng `SMAppService`. App là agent (`LSUIElement`), không có icon Dock.
 - **Mã dùng chung** (kiểu envelope, kho, view thẻ) tách thành một Swift package cục bộ để widget, app và bản iPhone sau này dùng lại.
 
@@ -291,16 +311,23 @@ Chi tiết đáng lưu ý:
 - **Vòng sync.** Gửi hàng đợi trước, rồi `GET /events` từ `cursor - 20` theo trang 100 (lùi 20 để bắt sự kiện commit muộn; áp dụng lại là idempotent), rồi đối chiếu đầy đủ bằng `GET /items` khi lần trước đã quá 6 giờ hoặc cursor không hợp lệ. Kích hoạt bởi tín hiệu Realtime, poll mỗi 5 phút, mạng có lại (`NWPathMonitor`), máy thức dậy, thao tác mới trong hàng đợi và đổi cấu hình.
 - **Hàng đợi thao tác.** Đã đọc và xoá áp dụng ngay vào kho rồi xếp hàng. 2xx và 404 là xong (404: mục đã bị xoá ở nơi khác hoặc đã dọn); 408, 429, 5xx và lỗi mạng thử lại sau; 401 và 403 dừng gửi, giữ hàng đợi tới khi đổi token; mã 4xx khác bỏ thao tác. Mục đã xoá không nhận thao tác nào nữa.
 - **Popup.** `NSPanel` `.nonactivatingPanel` mở bằng `orderFrontRegardless()`, không thành key window (cấu hình của thử nghiệm C). Log `popup.shown id=… others=… latency_ms=…` tính từ `created_at` của mục; lý do không hiện ghi `popup.suppressed reason=…`.
-- **Log.** `os.Logger` subsystem `local.oswidget.app` (category `sync`, `store`, `popup`, `login`, `model`), chỉ ghi id, `seq`, mã trạng thái và trạng thái, không ghi token hay nội dung mục.
+- **Log.** `os.Logger` subsystem `local.oswidget.app` (category `sync`, `store`, `popup`, `login`, `model`, và `audio` từ Giai đoạn 4), chỉ ghi id, `seq`, mã trạng thái và trạng thái, không ghi token hay nội dung mục.
 
 ### Widget đã làm (Giai đoạn 3)
 
 - **Target.** `OSWidgetWidget` (extension `com.apple.widgetkit-extension`, bundle `local.oswidget.app.widget`) trong `apps/macos/Widget/`, nhúng vào app `OSWidget` và khai báo trong `apps/macos/project.yml`. Một widget `OSWidgetItems` (`WidgetKind.items`, tên hiển thị "OS Widget") cỡ vừa và cỡ lớn. Entitlement: App Sandbox và cùng App Group `22LZWPB3XL.os-widget`, không có `network.client`.
-- **Nội dung.** Widget đọc `store.json` trong group container, hiện mục mới nhất trên cùng: 3 mục ở cỡ vừa, 6 mục ở cỡ lớn (`WidgetSize` trong `OSWidgetKit`), đầu widget có số chưa đọc. Mỗi `kind` có bố cục rút gọn; loại chưa có bố cục (như `vocab`) hiện `title` và `summary`. Mục đã đọc làm mờ và mất dấu tích. Bấm vào thân mục không làm gì.
+- **Nội dung.** Widget đọc `store.json` trong group container, hiện mục mới nhất trên cùng: 3 mục ở cỡ vừa, 6 mục ở cỡ lớn (`WidgetSize` trong `OSWidgetKit`), đầu widget có số chưa đọc. Mỗi `kind` có bố cục rút gọn (`CompactCardView`); loại chưa có bố cục hiện `title` và `summary`. Bố cục rút gọn của `vocab` có từ Giai đoạn 4. Mục đã đọc làm mờ và mất dấu tích. Bấm vào thân mục không làm gì.
 - **Hộp thư thao tác.** Nút đã đọc và xoá là `MarkItemReadIntent` và `DeleteItemIntent` (`apps/macos/Widget/ItemIntents.swift`). Intent ghi mỗi thao tác thành một file `<uuid>.json` trong thư mục `inbox` cạnh `store.json` (ghi vào file `.tmp-` rồi đổi tên, nên nhiều bên ghi và app đọc cùng lúc không cần khoá); xem `ActionInbox` trong `OSWidgetKit`. Chỉ app xoá file, sau khi áp dụng vào kho. `InboxWatcher` (`apps/macos/App/Widget/`) theo dõi thư mục và rút hộp thư (`ItemStore.drain`), rồi thao tác đi vào hàng đợi gửi lên server như thao tác trong app. Nhờ vậy widget cập nhật ngay cả khi app đã thoát (đo được: `unread` trong timeline đổi sau khoảng 30 ms) và thao tác được gửi khi app chạy lại.
 - **Chính sách reload.** `WidgetReloadPolicy` (`OSWidgetKit`) và `WidgetReloader` (`apps/macos/App/Widget/`): app chỉ gọi `reloadTimelines(ofKind:)` khi ảnh chụp nội dung widget (có cả thao tác đang chờ trong hộp thư) khác lần trước, không quá một lần mỗi 5 giây. Thay đổi tới quá sớm được giữ lại và trả lời bằng một reload sau khi đủ 5 giây với ảnh chụp mới nhất. Vòng sync không đổi gì không gây reload. Mỗi lần bấm nút gây khoảng 2 reload (một ngay sau khi rút hộp thư, một sau khoảng 5 giây khi sync áp lại trạng thái từ server).
 - **Log đếm.** Subsystem `local.oswidget.app`, category `widget`, mức `notice`: `widget.reload n_today=<n> reason=<first|changed|trailing> gap_ms=<ms>` mỗi yêu cầu của app, `widget.timeline family=… items=… unread=… top=…` mỗi lần widget dựng timeline, `widget.intent action=<read|delete> id=…` và `widget.inbox_drained count=…`. `n_today` về 0 lúc nửa đêm theo giờ máy và khi app chạy lại (dòng đầu sau đó ghi `n_today=1`), nên đếm bằng `scripts/widget-reload-count.sh`, không dùng `n_today`. Log không ghi token hay nội dung mục. `log show` không giữ dòng `info` và có khoảng trống khi máy ngủ, nên đếm một ngày dùng `log stream` ghi ra file ngoài repo, lọc theo tiến trình `OSWidget*` (`swift test` ghi cùng subsystem).
 - **Nghiệm thu.** `scripts/acceptance-widget.sh` (`2`, `read`, `delete`, `offline`, `reload`, `checklist`, `day`, `all`); đầu ra ở [báo cáo nghiệm thu](../plans/261124-1415-m3-widget/reports/acceptance.md) và [đếm một ngày](../plans/261124-1415-m3-widget/reports/reload-day.md).
+
+### Thẻ từ vựng đã làm (Giai đoạn 4)
+
+- **Thẻ đầy đủ.** `VocabCardView` (`OSWidgetKit`, `Cards/`) dùng cho popup và danh sách: dòng đầu là từ, phiên âm, từ loại và nút phát âm (phiên âm và từ loại xuống dòng thứ hai khi từ dài); rồi tối đa 3 nghĩa đánh số, mỗi nghĩa tối đa 1 ví dụ; câu ngữ cảnh; "Đồng nghĩa" và "Trái nghĩa" (ẩn khi rỗng); nguồn và thời gian. Mọi chữ hiện nguyên văn, không đọc như markdown hay HTML. Kiểu dữ liệu là `VocabContent` (`ItemContent.vocab`).
+- **Phát âm.** `Pronouncer` (`Cards/Pronunciation.swift`) chỉ phát khi người dùng bấm nút (FR-7), và bấm nút không đánh dấu đã đọc. Có `audio_url` mà `URLPolicy` cho tải (HTTPS, có host) thì phát bằng `AVPlayer`; không thì đọc từ bằng `AVSpeechSynthesizer`. File không tải được, lỗi khi phát hoặc sau 5 giây chưa phát thì chuyển sang bộ đọc. Mỗi lúc chỉ phát một từ. Log category `audio`: `pronounce.play source=audio|speech` và `pronounce.fallback reason=load|play|timeout`, không ghi từ hay URL.
+- **Widget.** `CompactVocabView` (`Cards/Compact/`): dòng từ, phiên âm và từ loại, rồi nghĩa đầu (tối đa 2 dòng); còn dòng thì thêm ví dụ đầu, tối đa 3 từ đồng nghĩa và câu ngữ cảnh (tối đa 2 dòng). Không có nút phát âm.
+- **Nghiệm thu.** PRD §10.5 với thẻ do cron gửi và thẻ publish tay, ở [báo cáo nghiệm thu](../plans/261124-1415-m4-vocab/reports/acceptance.md).
 
 ### Chia sẻ dữ liệu giữa app và widget
 
@@ -323,11 +350,12 @@ Nội dung do bên gửi cung cấp được coi là dữ liệu: markdown khôn
 | Tài nguyên | Hạn mức | Mức dùng ước tính |
 |---|---|---|
 | Worker, request | 100.000 mỗi ngày | Vài trăm mỗi ngày |
-| Worker, CPU | 10 ms mỗi request | Đo trên Worker Rust đã deploy (hai lần, 140–147 request mỗi endpoint): `POST /items` p50 2 ms, p99 11 ms; `GET /events` (5 sự kiện mỗi lần) p50 3 ms, p99 7 ms. Request trúng isolate mới tốn 16–21 ms nhưng không bị chặn. Thời gian chờ Supabase không tính. |
+| Worker, CPU | 10 ms mỗi request hoặc mỗi lần chạy cron | Đo trên Worker Rust đã deploy (hai lần, 140–147 request mỗi endpoint): `POST /items` p50 2 ms, p99 11 ms; `GET /events` (5 sự kiện mỗi lần) p50 3 ms, p99 7 ms. Request trúng isolate mới tốn 16–21 ms nhưng không bị chặn. Cron từ vựng (`wrangler tail`, 2026-11-24 và 26): lần chạy `empty` p50 9 ms, lớn nhất 17 ms (13 lần, 4 lần vượt 10 ms); lần chạy `sent` 9 và 17 ms (2 lần). `POST /vocab/words` (lô 1 đến 25 từ) p50 7 ms, lớn nhất 28 ms (6 request, 3 vượt 10 ms; phần vượt đến từ isolate lạnh, không từ cỡ lô). Mọi lần đều `ok`, không có `exceededCpu`. Thời gian chờ Supabase không tính. |
 | Worker, dung lượng | 64 MiB chưa nén (không còn hạn mức sau nén) | 656.64 KiB chưa nén, 216.96 KiB sau gzip (bản Giai đoạn 1; bản Giai đoạn 0 là 563.08 KiB và 191.37 KiB). |
 | Supabase Realtime, message | 2 triệu mỗi tháng | Khoảng 6.000 mỗi tháng |
 | Supabase Realtime, kết nối | 200 đồng thời | 2 đến 3 |
-| Supabase, project | Tạm dừng sau khoảng một tuần ít hoạt động | Cron từ vựng mỗi giờ giữ project hoạt động |
+| Worker, Cron Trigger | 5 mỗi tài khoản | 1 (`*/5 * * * *`, 288 lần chạy mỗi ngày, mỗi lần một RPC) |
+| Supabase, project | Tạm dừng sau khoảng một tuần ít hoạt động | Cron từ vựng gọi Supabase 5 phút một lần, giữ project hoạt động |
 
 Chu kỳ poll dự phòng phải đủ thưa để hai máy không tiêu đáng kể hạn mức request; vài phút một lần là dư.
 

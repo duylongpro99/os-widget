@@ -127,6 +127,6 @@ Một người dùng duy nhất, dùng một MacBook và một Mac mini (macOS 2
 
 ## 11. Câu hỏi còn mở
 
-1. Đã chốt (2026-11-22): tự xây bộ từ, nạp từ sách hoặc API công khai (FR-24 đến FR-27). Còn mở: dùng API từ điển nào, và sách ở định dạng gì (PDF, EPUB, text).
+1. Đã chốt (2026-11-22): tự xây bộ từ, nạp từ sách hoặc API công khai (FR-24 đến FR-27). Đã chốt (2026-11-24): API từ điển là Free Dictionary API (`api.dictionaryapi.dev`, miễn phí, không cần khoá; đủ trường bắt buộc ở 17/20 từ đo thử), sách ở dạng văn bản thuần `.txt` (UTF-8, như bản Project Gutenberg); EPUB để sau, PDF chưa làm. Cách nạp ở [architecture.md](architecture.md#44-bộ-từ-vựng) §4.4.
 2. Đã chốt (2026-11-22): hành vi popup theo FR-6 đến FR-10c. Popup luôn mở cho mục không phải `low`, không dò trạng thái desktop.
 3. Đã chốt: thời gian popup hiển thị là 30 giây. Đã chốt (2026-11-23): thời hạn tồn tại mặc định của một mục khi bên gửi không đặt `ttl` là 7 ngày; mục sống lâu hơn popup nên vẫn còn ở widget và danh sách sau khi popup đóng.
