@@ -1,12 +1,14 @@
 # Nghiệm thu server M4: migration, deploy Cron Trigger, nạp từ, tiêu chí 2–5, đo CPU
 
-Phần 1 (G1, G2, tiêu chí 5, CPU cron `empty`): session `m4-vocab-p07-live`, ngày 2026-11-24. Phần 2 (G3, tiêu chí 2–4, CPU `POST /vocab/words` và cron `sent`): session `m4-vocab-p07-live-2`, từ 2026-11-26 22:00 đến 2026-11-27 08:57. Giờ ghi theo Asia/Saigon. Nhánh `vocab-acceptance`, worktree `/Users/onedayin20902/personal/os-widget-wt/vocab-acceptance`.
+Phần 1 (G1, G2, tiêu chí 5, CPU cron `empty`): session `m4-vocab-p07-live`, ngày 2026-11-24. Phần 2 (G3, tiêu chí 2–4, CPU `POST /vocab/words` và cron `sent`): session `m4-vocab-p07-live-2`, từ 2026-11-26 22:00 đến 2026-11-27 08:57. Phần 3 (chạy lại tiêu chí 4 đủ hai bước 5 và 15 phút): session `m4-vocab-p07-live-3`, 2026-11-27 21:10–21:46. Giờ ghi theo Asia/Saigon. Nhánh `vocab-acceptance`, worktree `/Users/onedayin20902/personal/os-widget-wt/vocab-acceptance`.
 
 ## Kết luận
 
 G1 và G2 đạt. Migration `20261124000000_vocab.sql` đã lên project live sau khi sao lưu. Worker chạy Cron Trigger `*/5 * * * *`, và `scripts/acceptance-server.sh` vẫn pass 8/8. Đã ghi được 13 lần chạy cron từ 15:45 đến 17:00: tất cả có `outcome` `ok`, trả `vocab.tick status=empty`, CPU p50 9 ms và lớn nhất 17 ms. Không lần nào `exceededCpu`, nên không cần đường dự phòng `pg_cron` (G5). Tiêu chí 5 PASS. Tiêu chí 2 đến 4 (G3, G4) để lại cho session sau, vì đợt đếm reload 24 giờ của widget đang chạy.
 
 Phần 2: G3 đạt. Nạp 17 từ mẫu được `stored 17, skipped 0`; nạp 50 từ "Pride and Prejudice" được `stored 45, skipped 5`. Tiêu chí 2 và 3 PASS. Tiêu chí 4 chỉ đạt một nửa: đổi chu kỳ sang 5 phút có hiệu lực ngay ở lần cron kế tiếp mà không deploy (131 thẻ, khoảng cách 299–301 giây). Phần 15 phút chưa chạy, vì máy ngủ qua đêm làm script treo ở `sleep 900`. Vì vậy chu kỳ 5 phút và `priority` `low` nằm trên live từ 22:03 đến **08:56:41 ngày 2026-11-27**. Đó là lúc cả sáu khoá được trả về giá trị đã lưu (trừ `vocab_last_sent_at`). Cron lúc gửi thật (`status=sent`) đo được 2 lần, 9 và 17 ms, đều `ok`. `POST /vocab/words` có 6 request, p50 7 ms, lớn nhất 28 ms, đều `ok`. Không có `exceededCpu`, nên không làm G5. Trong đêm, bộ 62 từ quay vòng hai lần trên live, không gửi lại ngay từ vừa gửi và không có mục rỗng. Đây là bằng chứng live thêm cho tiêu chí 5.
+
+Phần 3: tiêu chí 4 PASS đủ cả hai bước. Ở chu kỳ 5 phút có 3 thẻ cách nhau 300 và 301 giây. Ở chu kỳ 15 phút, thẻ kế tiếp tới sau 899 giây. Script chạy dưới `caffeinate -dims` nên máy không ngủ. Sáu khoá được trả về giá trị đã lưu lúc 21:45:53 (trừ `vocab_last_sent_at`). Live vẫn 62 từ.
 
 ## Môi trường
 
@@ -293,12 +295,77 @@ Cron `vocab.tick status=sent`: tail bắt được 2 lần, 22:05:31 (cpuTime 9 
 - `vocab_words`: 62 từ, gồm `dictionaryapi.dev` 13, `Pride and Prejudice` 45, `acceptance-words` 3, `acceptance-book` 1. Số 62 đọc lúc 22:02:57; sau đó không có lần nạp nào, và cron chỉ ghi `sent_at`.
 - Không còn tiến trình `wrangler tail`, script nghiệm thu hay wrapper nào. Session này không bật stack Supabase cục bộ.
 
+## Phần 3: chạy lại tiêu chí 4 (2026-11-27 21:10–21:46)
+
+Supervisor cho chạy lại toàn bộ `scripts/acceptance-vocab.sh <worker-url> 4`, vì đợt đếm reload của widget đã kết thúc lúc 20:56:41. Đây là lần đầu bản sửa `wait_for` (chờ theo đồng hồ thực) chạy trên live. Token và mật khẩu DB lấy từ Keychain ngay trong lệnh cần, không in ra.
+
+### Giá trị lưu trước khi đổi (21:10:23)
+
+| key | value |
+|---|---|
+| `vocab_enabled` | `true` |
+| `vocab_interval_minutes` | `60` |
+| `vocab_item_ttl_seconds` | `86400` |
+| `vocab_last_sent_at` | `"2026-11-27T13:55:31.583706+00:00"` (20:55:31) |
+| `vocab_priority` | `"normal"` |
+| `vocab_when_exhausted` | `"rotate"` |
+
+`vocab_words`: 62 dòng.
+
+### Cách chạy
+
+Một wrapper ngoài repo chạy dưới `caffeinate -dims`, nên máy không ngủ trong suốt lần kiểm. Wrapper đặt `vocab_priority` thành `"low"` lúc 21:10:39, rồi chạy script. Trap `EXIT` của wrapper luôn trả `vocab_priority` về `"normal"` và `vocab_interval_minutes` về `60`, kể cả khi bị dừng giữa chừng. Script cũng có trap riêng cho `vocab_interval_minutes`. `caffeinate` thoát cùng wrapper.
+
+Đầu ra của script, mã thoát 0:
+
+```text
+vocab acceptance against https://os-widget.longdaobk17.workers.dev, criteria 4
+vocab_interval_minutes was 60; setting 5 and watching GET /events for 15 minutes
+setting 15 and watching GET /events for 20 minutes
+restored vocab_interval_minutes to 60
+PASS 4 interval change without deploy: interval 5: 3 vocab items in 15 min; interval 15: 1 in 20 min, gaps 899s
+checks failed: 0
+```
+
+Script bắt đầu lúc 21:10:39, chuyển sang 15 phút khoảng 21:25:4x, trả `vocab_interval_minutes` về 60 và kết thúc lúc 21:45:53. Đúng 35 phút theo đồng hồ thực.
+
+### Các thẻ `vocab-cron` trong lúc kiểm
+
+Trong lúc kiểm chỉ có bốn `item.created` (đọc từ `events`, sau 21:10), đều là `vocab-cron` với `priority` `low`:
+
+| seq | Lúc | Từ | Chu kỳ lúc đó | Khoảng cách với thẻ trước |
+|---|---|---|---|---|
+| 654 | 21:15:31 | views | 5 phút | thẻ đầu, ở lần cron đầu tiên sau khi đổi |
+| 655 | 21:20:31 | ambiguous | 5 phút | 300 giây |
+| 656 | 21:25:32 | beauty | 5 phút | 301 giây |
+| 657 | 21:40:31 | comes | 15 phút | 899 giây |
+
+| Phần | Kết quả |
+|---|---|
+| Đặt 5 phút: có ít nhất 2 mục cách nhau khoảng 5 phút | **PASS.** 3 mục trong 15 phút, khoảng cách 300 và 301 giây; có hiệu lực ở lần cron kế tiếp, không deploy. |
+| Đặt 15 phút: khoảng cách ≥ 14 phút | **PASS.** Lần cron 21:30 và 21:35 không gửi; thẻ kế tiếp tới lúc 21:40:31, cách thẻ trước 899 giây. Không deploy. |
+
+### Trạng thái live khi kết thúc (21:45:53)
+
+| key | value | so với 21:10:23 |
+|---|---|---|
+| `vocab_enabled` | `true` | bằng |
+| `vocab_interval_minutes` | `60` | bằng |
+| `vocab_item_ttl_seconds` | `86400` | bằng |
+| `vocab_last_sent_at` | `"2026-11-27T14:40:31.49714+00:00"` (21:40:31) | đổi do cron gửi, được phép |
+| `vocab_priority` | `"normal"` | bằng |
+| `vocab_when_exhausted` | `"rotate"` | bằng |
+
+- `vocab_words`: 62 dòng, không đổi.
+- Không còn tiến trình `caffeinate -dims`, `wrangler tail` hay script nghiệm thu nào của session này. Session này không chạy `wrangler tail`, và `scripts/acceptance-vocab.sh` không phải sửa.
+
 ## Còn lại
 
-- **Tiêu chí 4, phần 15 phút.** Đặt `vocab_interval_minutes` thành 15 và thấy khoảng cách ≥ 14 phút. Cần một lần chạy mới của `scripts/acceptance-vocab.sh <worker-url> 4` (đã sửa phần chờ), có `vocab_priority` `low` trong lúc kiểm. Chỉ chạy khi supervisor cho phép, vì đợt đếm reload 12 giờ của widget bắt đầu từ 08:56:41.
+- **Tiêu chí 4, phần 15 phút: đã xong** ở phần 3 (PASS, khoảng cách 899 giây). Tiêu chí 2, 3, 4 và 5 đều đã PASS trên live.
 - **Số CPU vào `docs/architecture.md` §8** ở Phase 10. Cron `empty`: p50 9 ms, lớn nhất 17 ms (13 lần). Cron `sent`: 9 và 17 ms (2 lần). `POST /vocab/words`: p50 7 ms, lớn nhất 28 ms (6 lần).
 - Danh sách 50 từ của `ingest book` trên bản Gutenberg đầy đủ lấy toàn bộ từ lời tựa. Muốn dùng file nguyên bản cho sách khác có lời tựa, cần cắt tay như ở trên, hoặc thêm vào CLI một cách bỏ phần front matter. Việc này ngoài phạm vi Phase 7.
 
 ## Câu hỏi còn mở
 
 - Đêm 26/11 widget nhận 131 thẻ `low` 5 phút một lần, thay vì thẻ `normal` mỗi giờ. Vì vậy đêm này không dùng được làm bằng chứng cho mục 7 của checklist widget. Có cần một đêm khác ở cấu hình mặc định không?
+  - **Đã trả lời.** Supervisor quyết định (2026-11-27): mục 7 của widget được đánh giá bằng log đêm 26–27/11; mức ưu tiên của thẻ không ảnh hưởng tới mục này.
