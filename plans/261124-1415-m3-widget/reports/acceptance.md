@@ -1,6 +1,6 @@
 # Báo cáo nghiệm thu Giai đoạn 3: Widget (phần đầu của Phase 6)
 
-Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `scripts/acceptance-widget.sh`, checklist của operator trừ mục 7, và bắt đầu đếm reload 24 giờ. Kết luận đếm ngày và tài liệu do session `m3-widget-p06-finish` làm ngày 2026-11-26; mục 7 và trạng thái phase còn chờ.
+Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `scripts/acceptance-widget.sh`, checklist của operator trừ mục 7, và bắt đầu đếm reload 24 giờ. Kết luận đếm ngày và tài liệu do session `m3-widget-p06-finish` làm ngày 2026-11-26. Đếm lại nửa ngày, mục 7, review và đóng phase do session `m3-widget-p06-review` làm ngày 2026-11-27. **Mọi kiểm đạt.**
 
 ## Tóm tắt
 
@@ -14,8 +14,9 @@ Phần này do session `m3-widget-p06-run` làm: cài bản có widget, chạy `
 | `offline` (FR-20) | PASS (lượt thứ hai, 17:15–17:16): bấm khi mất mạng → widget mờ ngay, app rút hộp thư khi offline, `sync.queue_sent … 204` 0,4 s sau khi có mạng lại. Operator xác nhận hàng mờ ngay khi bấm lúc offline (D27 "A"). Lượt đầu (17:02–17:12) hết giờ vì operator chưa tắt mạng |
 | Checklist 1–6 | Đạt (mục 3 và 4 có bằng chứng log, xem bảng checklist) |
 | Checklist 8 (`acceptance-menu-bar.sh 1`, `6`) | PASS, popup `latency_ms=637`; thẻ `vocab` hiện tiêu đề và tóm tắt |
-| `day` (D9) | FAIL: 45 yêu cầu reload trên ngưỡng 40, cả 45 thuộc phần nghiệm thu, phần dùng thật 0; không cặp nào dưới 5 s (nhỏ nhất 5006 ms), 100% có timeline trong 5 s. Chi tiết và đề xuất ở [reload-day.md](./reload-day.md) |
-| Checklist 7 (một đêm) | chờ: đêm 26–27/11, thẻ vocab từ cron |
+| `day` lần đầu (D9, 24 giờ) | FAIL: 45 yêu cầu reload trên ngưỡng 40, cả 45 thuộc phần nghiệm thu, phần dùng thật 0; không cặp nào dưới 5 s (nhỏ nhất 5006 ms), 100% có timeline trong 5 s |
+| `day` đếm lại (D29, D30, 12 giờ dùng thật 2026-11-27 08:56:41 tới 20:56:41) | PASS: 12 yêu cầu reload (ngưỡng 20), không cặp nào dưới 5 s (nhỏ nhất 5290 ms), 100% có timeline trong 5 s (lớn nhất 178 ms), 0 lần bấm nút. Chi tiết ở [reload-day.md](./reload-day.md) |
+| Checklist 7 (một đêm, 26–27/11) | Đạt: máy ngủ 22:07:16, thức 08:56:12; 08:56:13.801 `sync.applied new=2` → 08:56:13.838 một `widget.reload` → timeline cỡ vừa 08:56:13.872 và cỡ lớn 08:56:13.989 với mục mới trên cùng |
 
 Mốc đếm 24 giờ: bắt đầu 2026-11-24 15:28:48; `log stream` PID 6328 ghi `~/Library/Logs/os-widget/widget-day-20261124.ndjson`.
 
@@ -115,7 +116,7 @@ PASS offline tap drained while offline, read_at 2026-11-24T10:16:17.846+00:00 on
 | 4 | Bấm khi app đã thoát: widget cập nhật ngay; mở lại app thì thao tác được gửi | Đạt. App thoát khoảng 16:32:12; 16:32:14.721 `widget.intent action=read` (hàng `generic`) → timeline `unread` 6→5 sau 30 ms, app không chạy. Operator chưa mở lại app nên session này mở lúc 16:40:41: `widget.inbox_drained count=1` ngay khi khởi động, `sync.queue_sent … status=204`, server `item.read` seq 493 |
 | 5 | Bấm thân mục không làm gì | Đạt. D22 "A" |
 | 6 | Sáng và tối đều đọc được | Đạt. D22 "A" |
-| 7 | Sau một đêm ngủ máy | chờ: đêm 26–27/11, thẻ vocab từ cron |
+| 7 | Sau một đêm ngủ máy | Đạt, từ log (đêm 2026-11-26 tới 27, thẻ vocab mỗi 5 phút). Ngủ 22:07:16 (`pmset` Idle Sleep), thức 08:56:12 (mở nắp). Vòng sync đầu sau khi thức: `sync.applied seq=619..640 new=2` 08:56:13.801, một `widget.reload reason=changed` 08:56:13.838, `widget.timeline` cỡ vừa 08:56:13.872 và cỡ lớn 08:56:13.989 `top=4b554525-…`; hai vòng sau `new=0` không reload. Chi tiết ở [reload-day.md](./reload-day.md#mục-7-của-checklist-một-đêm-ngủ-máy) |
 | 8 | Popup và danh sách M2 vẫn chạy | Đạt. `acceptance-menu-bar.sh 1`: `PASS 1 … latency_ms=637`; `6`: `PASS 6 vocab item … shown with title and summary`. D24 "A + title and summary must show". Câu trả lời mục 6 tới trước khi script publish mục `vocab m2-…164848`, nên operator thực ra nhìn thẻ `vocab m3-…162821` của checklist (cùng tóm tắt); hai mục cùng đường hiển thị |
 
 ## Phát hiện
@@ -130,6 +131,6 @@ PASS offline tap drained while offline, read_at 2026-11-24T10:16:17.846+00:00 on
 
 ## Còn lại
 
-- Checklist mục 7: chờ: đêm 26–27/11, thẻ vocab từ cron. Đêm 24–25/11 không có mục nào được publish (mọi `sync.applied` sau 17:17 có `new=0`), nên file log của đêm đó không chứng minh được mục này. Nguồn đánh giá là `~/Library/Logs/os-widget/widget-day-20261124.ndjson`, vẫn do `log stream` PID 6328 ghi; chưa được dừng.
-- Kết luận D9 và việc có tính lại ngưỡng hay không: chờ quyết định của operator (xem [reload-day.md](./reload-day.md)).
-- Trạng thái Phase 6 và plan chưa đổi; session review sau đêm 26–27/11 đánh giá mục 7 rồi merge.
+- Không còn kiểm nào của giai đoạn này chờ. `log stream` PID 6328 đã dừng lúc 2026-11-27 21:11; file `~/Library/Logs/os-widget/widget-day-20261124.ndjson` được giữ.
+- Kiểm đồng bộ thao tác sang máy thứ hai thật (Mac mini) để Giai đoạn 5, như plan.
+- Review nhánh trước khi merge: [p06-review.md](./p06-review.md).
