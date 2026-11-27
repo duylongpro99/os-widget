@@ -1,7 +1,7 @@
 ---
 title: "M4: Từ vựng"
 description: "Hoàn thành Giai đoạn 4 của roadmap: bảng vocab_words và settings, endpoint nạp từ, lệnh ingest từ Free Dictionary API và sách .txt, Cron Trigger gửi một từ theo chu kỳ chỉnh bằng settings, thẻ vocab đầy đủ có phát âm ở popup và danh sách, bố cục rút gọn ở widget."
-status: pending
+status: completed
 priority: P1
 effort: 30h
 branch: main
@@ -70,7 +70,7 @@ Thêm: CPU của mỗi lần chạy cron được đo trên bản deploy và ghi
 | 7 | [Deploy, đo CPU cron và nghiệm thu server](./phase-07-deploy-va-nghiem-thu-server.md) | Completed | Server, có bước **[operator]** | 2, 4, 5, 6 |
 | 8 | [Thẻ `vocab` đầy đủ và phát âm](./phase-08-the-tu-vung-va-phat-am.md) | Completed | Client | Không (xếp lịch tránh cook M3 sửa cùng file) |
 | 9 | [Bố cục rút gọn `vocab` ở widget](./phase-09-bo-cuc-rut-gon-widget.md) | Completed | Client | 8; M3 Phase 4 |
-| 10 | [Nghiệm thu PRD §10.5 và cập nhật tài liệu](./phase-10-nghiem-thu-va-tai-lieu.md) | Pending | Client và tài liệu | 7, 8, 9 |
+| 10 | [Nghiệm thu PRD §10.5 và cập nhật tài liệu](./phase-10-nghiem-thu-va-tai-lieu.md) | Completed | Client và tài liệu | 7, 8, 9 |
 
 Server-only (1 đến 7) không chạm `apps/`, nên chạy song song được với cook của M3. Tối đa 3 session song song (quyết định của operator 2026-11-24).
 
