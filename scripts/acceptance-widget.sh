@@ -46,7 +46,8 @@ case "$which_check" in
     summary=$(tail -n 1 <<<"$out")
     requests=$(sed -nE 's/^requests=([0-9]+) .*/\1/p' <<<"$summary")
     verdict=$(sed -nE 's/.*verdict=([A-Z]+)$/\1/p' <<<"$summary")
-    # Taps on the widget buttons each lead to about one reload after the app drains the inbox.
+    # Each tap on a widget button leads to about two reloads: one after the app drains the inbox,
+    # one about 5 s later when the sync round applies the server's state.
     if [[ "${1-}" == --input ]]; then
       taps=$(grep -c '"eventMessage":"widget.intent ' "$2" || true)
     else
