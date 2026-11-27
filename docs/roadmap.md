@@ -110,6 +110,22 @@ Ghi chú cho Giai đoạn 3: thử nghiệm B cho thấy widget vẽ lại trong
 
 **Hoàn thành khi:** đạt tiêu chí 2 ở mục 10 của PRD; thao tác đã đọc trong widget đồng bộ sang máy kia; số lần làm mới trong một ngày dùng thật nằm dưới mức đo được ở thử nghiệm B.
 
+### Kết quả
+
+Xong ngày 2026-11-27 (kiểm với Mac mini thật hoãn sang Giai đoạn 5, như Giai đoạn 2). Widget cài trên MacBook ngày 2026-11-24 15:02 từ `apps/macos/` (target `OSWidgetWidget`, kho `store.json` và hộp thư thao tác trong group container, xem [architecture.md](architecture.md#widget-đã-làm-giai-đoạn-3) §6), kiểm bằng `scripts/acceptance-widget.sh`; đầu ra ở [báo cáo nghiệm thu](../plans/261124-1415-m3-widget/reports/acceptance.md) và [đếm một ngày](../plans/261124-1415-m3-widget/reports/reload-day.md).
+
+| Điều kiện | Kết quả |
+|---|---|
+| Tiêu chí 2 (PRD §10.2) | Đạt. Mục mới nằm trên cùng ở cả cỡ vừa và cỡ lớn; trễ từ `sync.applied` tới `widget.timeline` lớn nhất mỗi lần trong 5 lần là 101, 117, 139, 199 và 251 ms; operator xác nhận. |
+| Đã đọc từ widget lên server | Đạt. Bấm trên widget: intent, rút hộp thư sau 214 ms, rồi `item.read` trên server (`item.deleted` cho nút xoá, sau 218 ms). Bấm khi app đã thoát: widget đổi sau 30 ms, thao tác gửi khi mở lại app. Bấm khi mất mạng: gửi 0,4 s sau khi có mạng lại. |
+| Số lần làm mới trong một ngày | Đạt. Lần đếm đầu (24 giờ từ 2026-11-24 15:28) có 45 yêu cầu, trên ngưỡng 40, nhưng cả 45 thuộc lúc nghiệm thu và phần dùng thật không có thẻ nào. Theo quyết định của chủ dự án, đếm lại 12 giờ dùng thật ngày 2026-11-27 (08:56:41 tới 20:56:41) với ngưỡng 20: 12 yêu cầu, không cặp nào cách nhau dưới 5 s (nhỏ nhất 5290 ms), 100% có timeline trong 5 s (ngưỡng 95%, lớn nhất 178 ms). |
+
+Phát hiện khi nghiệm thu: mỗi lần bấm nút trên widget gây khoảng 2 reload (một ngay sau khi rút hộp thư, một sau khoảng 5 giây khi sync áp lại trạng thái từ server), nên một ngày dùng nhiều nút tiêu ngân sách nhanh hơn số mục mới. Bản build trong derived data được đăng ký thành widget thứ hai cùng bundle id và phải gỡ trước khi thêm widget.
+
+Một đêm ngủ máy (2026-11-26 tới 27, thẻ vocab mỗi 5 phút): sau khi máy thức lúc 08:56:12, vòng sync đầu áp 2 thẻ mới và đúng một reload theo sau, widget hiện thẻ mới trên cùng sau khoảng 0,2 s.
+
+Hoãn sang Giai đoạn 5: kiểm thao tác trong widget đồng bộ sang Mac mini thật (ở Giai đoạn 3 máy thứ hai được giả bằng API với token client).
+
 ## Giai đoạn 4: Từ vựng
 
 - View `vocab` đầy đủ ở popup và danh sách; bố cục rút gọn ở widget.

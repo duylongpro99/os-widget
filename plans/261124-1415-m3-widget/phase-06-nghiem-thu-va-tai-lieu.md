@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Cài, nghiệm thu, đếm một ngày và tài liệu"
-status: pending
+status: completed
 priority: P1
 effort: "3h (cộng 24 giờ đếm)"
 dependencies: [1, 2, 3, 4, 5]
@@ -64,13 +64,13 @@ App có widget được cài trên MacBook, ba điều kiện hoàn thành của
 
 ## Tasks & Steps
 
-- [ ] Ghi trạng thái WidgetProbe (mtime, `codesign -dvvv`) và số identity ký.
-- [ ] Build Release, cài, kiểm chữ ký và entitlement, `pluginkit`.
-- [ ] Operator thêm hai widget; bắt đầu đếm 24 giờ.
-- [ ] Viết và chạy `acceptance-widget.sh` (`all`, rồi `offline`).
-- [ ] Checklist operator (mục 7 cần một đêm).
-- [ ] Sau 24 giờ: `acceptance-widget.sh day`, viết `reload-day.md`, dừng `log stream` nếu đã chạy.
-- [ ] Báo cáo, architecture, roadmap. Kiểm lại WidgetProbe không đổi.
+- [x] Ghi trạng thái WidgetProbe (mtime, `codesign -dvvv`) và số identity ký.
+- [x] Build Release, cài, kiểm chữ ký và entitlement, `pluginkit`.
+- [x] Operator thêm hai widget; bắt đầu đếm 24 giờ.
+- [x] Viết và chạy `acceptance-widget.sh` (`all`, rồi `offline`).
+- [x] Checklist operator (mục 7 cần một đêm).
+- [x] Sau 24 giờ: `acceptance-widget.sh day`, viết `reload-day.md`, dừng `log stream` nếu đã chạy.
+- [x] Báo cáo, architecture, roadmap. Kiểm lại WidgetProbe không đổi.
 
 ## Verification
 
