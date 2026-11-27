@@ -118,6 +118,14 @@ events_since() {
   echo "$all"
 }
 
+# wait_for SECONDS: waits until SECONDS of wall-clock time have passed. A plain
+# sleep stops counting while the Mac sleeps, which can leave the live setting
+# changed for hours; this ends on time as soon as the machine wakes.
+wait_for() {
+  local end=$(($(date +%s) + $1))
+  while (($(date +%s) < end)); do sleep 10; done
+}
+
 latest_seq() {
   local code
   code=$(curl -s -o "$tmp/out" -w '%{http_code}' -H @"$tmp/client" "$url/items") || code=000
@@ -205,7 +213,7 @@ if wants 4; then
     echo "vocab_interval_minutes was $old; setting 5 and watching GET /events for 15 minutes"
     s5=$(latest_seq)
     sql "update public.settings set value = '5'::jsonb where key = 'vocab_interval_minutes'" >/dev/null
-    sleep 900
+    wait_for 900
     sends5=()
     while read -r t; do sends5+=("$t"); done < <(vocab_sends "$s5")
     ok5=n
@@ -216,7 +224,7 @@ if wants 4; then
     echo "setting 15 and watching GET /events for 20 minutes"
     s15=$(latest_seq)
     sql "update public.settings set value = '15'::jsonb where key = 'vocab_interval_minutes'" >/dev/null
-    sleep 1200
+    wait_for 1200
     sends15=()
     while read -r t; do sends15+=("$t"); done < <(vocab_sends "$s15")
     sql "$restore_sql" >/dev/null && restore_sql="" && echo "restored vocab_interval_minutes to $old"
